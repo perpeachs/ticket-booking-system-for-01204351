@@ -1,18 +1,41 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import Header from "./components/Header";
+import HomePage from "./pages/HomePage";
+import ConcertPage from "./pages/ConcertPage";
+import AboutPage from "./pages/AboutPage";
+// import UserProfilePage from "./pages/UserProfilePage";
+// import LoginPage from "./pages/LoginPage";
+import BookingPage from "./pages/BookingPage";
 
-function App() {
-  const [count, setCount] = useState(0)
+function Layout({ children }) {
+  const location = useLocation();
+
+  // ซ่อน header ในหน้า login
+  const hideHeader = location.pathname === "/login";
 
   return (
     <>
-     <h1 className="text-4xl font-bold text-blue-900">
-      Hello World
-    </h1>
+      {!hideHeader && <Header />}
+      {children}
     </>
-  )
+  );
 }
 
-export default App
+function App() {
+  return (
+    <BrowserRouter>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/concert" element={<ConcertPage />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/profile" element={<h1>Profile</h1>} />
+          <Route path="/login" element={<h1>Login</h1>} />
+          <Route path="/booking/:id" element={<BookingPage />} />
+        </Routes>
+      </Layout>
+    </BrowserRouter>
+  );
+}
+
+export default App;
