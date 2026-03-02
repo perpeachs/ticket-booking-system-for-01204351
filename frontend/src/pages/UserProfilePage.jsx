@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function UserProfilePage() {
+  const navigate = useNavigate();
   // Mock user data (จะเปลี่ยนเป็น data จาก Flask API ภายหลัง)
   const [username, setUsername] = useState("john_doe");
   const [password, setPassword] = useState("password123");
@@ -14,8 +16,8 @@ function UserProfilePage() {
     {
       id: 1,
       concertName: "Arctic Monkeys Live in Bangkok",
-      date: "10 June 2026", //have to join with concert & zone table
-      zone: "VIP", //have to join with zone table
+      date: "10 June 2026",
+      zone: "VIP",
       price: 5000,
       status: "success",
       is_deleted: false,
@@ -238,7 +240,7 @@ function UserProfilePage() {
         {/* Transaction History Button */}
         <div className="bg-white shadow-md rounded-xl p-6">
           <button
-            onClick={() => alert("Transaction history page")}
+            onClick={() => navigate("/history")}
             className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
           >
             📜 View Transaction History

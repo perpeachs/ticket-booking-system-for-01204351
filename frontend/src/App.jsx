@@ -6,6 +6,7 @@ import AboutPage from "./pages/AboutPage";
 import UserProfilePage from "./pages/UserProfilePage";
 // import LoginPage from "./pages/LoginPage";
 import BookingPage from "./pages/BookingPage";
+import TransactionHistory from "./pages/TransactionHistory";
 
 function Layout({ children }) {
   const location = useLocation();
@@ -32,6 +33,7 @@ function App() {
           <Route path="/profile" element={<UserProfilePage />} />
           <Route path="/login" element={<h1>Login</h1>} />
           <Route path="/booking/:id" element={<BookingPage />} />
+          <Route path="/history" element={<TransactionHistory />} />
         </Routes>
       </Layout>
     </BrowserRouter>
