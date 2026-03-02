@@ -4,7 +4,7 @@ import HomePage from "./pages/HomePage";
 import ConcertPage from "./pages/ConcertPage";
 import AboutPage from "./pages/AboutPage";
 import UserProfilePage from "./pages/UserProfilePage";
-// import LoginPage from "./pages/LoginPage";
+import LoginPage from "./pages/LoginPage";
 import BookingPage from "./pages/BookingPage";
 import TransactionHistory from "./pages/TransactionHistory";
 
@@ -31,7 +31,7 @@ function App() {
           <Route path="/concert" element={<ConcertPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/profile" element={<UserProfilePage />} />
-          <Route path="/login" element={<h1>Login</h1>} />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/booking/:id" element={<BookingPage />} />
           <Route path="/history" element={<TransactionHistory />} />
         </Routes>

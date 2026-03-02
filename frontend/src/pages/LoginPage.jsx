@@ -1,6 +1,7 @@
 import { useState } from "react";
+import bgImage from "../assets/thumb-1920-1172157.jpeg";
 
-function LoginForm() {
+function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -22,7 +23,7 @@ function LoginForm() {
         justifyContent: "center",
         alignItems: "center",
         height: "100vh",
-        backgroundImage: "url('/thumb-1920-1172157.jpeg')",
+        backgroundImage: `url(${bgImage})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat"
@@ -82,4 +83,4 @@ function LoginForm() {
   );
 }
 
-export default LoginForm;
+export default LoginPage;
