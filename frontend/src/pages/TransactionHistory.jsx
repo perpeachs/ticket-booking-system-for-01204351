@@ -11,9 +11,8 @@ function TransactionHistory() {
             user_id: 5,
             action: "topup_token",
             details: {
-                amount: 1000,
+                amount: 1000.00,
                 payment_method: "Credit Card",
-                reference_code: "TXN987654321",
             },
             created_at: "2026-03-01T10:00:00Z",
             is_deleted: false,
@@ -21,11 +20,32 @@ function TransactionHistory() {
         {
             _id: "txn002",
             user_id: 5,
-            action: "book_ticket",
+            action: "ticket",
             details: {
-                event_id: 101,
+                booking_id: 1055,
+                payment_id: 501,
+                event_name: "Arctic Monkeys Live in Bangkok",
                 zone_name: "VIP",
-                tokens_deducted: 500,
+                quantity: 2,
+                price: 5000.00,
+                status: "expired",
+            },
+            created_at: "2026-03-05T14:30:00Z",
+            is_deleted: false,
+        },
+
+        {
+            _id: "txn002",
+            user_id: 5,
+            action: "ticket",
+            details: {
+                booking_id: 1055,
+                payment_id: 501,
+                event_name: "Arctic Monkeys Live in Bangkok",
+                zone_name: "VIP",
+                quantity: 2,
+                price: 5000.00,
+                status: "booking",
             },
             created_at: "2026-03-05T14:30:00Z",
             is_deleted: false,
@@ -33,28 +53,73 @@ function TransactionHistory() {
         {
             _id: "txn003",
             user_id: 5,
-            action: "cancel_ticket",
+            action: "payment",
             details: {
+                payment_id: 501,
                 booking_id: 1055,
-                event_id: 101,
-                refunded_tokens: 400,
-                reason: "ผู้จัดงานเปลี่ยนวันแสดง",
+                event_name: "Arctic Monkeys Live in Bangkok",
+                zone_name: "VIP",
+                quantity: 2,
+                amount_paid: 5000.00,
+                status: "success",
+            },
+            created_at: "2026-03-01T10:00:00Z",
+            is_deleted: false,
+        },
+        {
+            _id: "txn004",
+            user_id: 5,
+            action: "payment",
+            details: {
+                payment_id: 502,
+                booking_id: 1056,
+                event_name: "Coldplay Music of the Spheres",
+                zone_name: "VIP",
+                quantity: 2,
+                amount_paid: 5000.00,
+                status: "failed",
+            },
+            created_at: "2026-03-01T10:05:00Z",
+            is_deleted: false,
+        },
+        {
+            _id: "txn005",
+            user_id: 5,
+            action: "payment",
+            details: {
+                payment_id: 501,
+                booking_id: 1055,
+                event_name: "Arctic Monkeys Live in Bangkok",
+                zone_name: "VIP",
+                quantity: 2,
+                refunded_tokens: 5000.00,
+                status: "cancel_and_refund",
+                reason: "ผู้ใช้ยกเลิกรายการ",
             },
             created_at: "2026-03-07T09:15:00Z",
             is_deleted: false,
         },
     ];
 
-    const getActionStyle = (action) => {
+    const getActionStyle = (action, details) => {
         switch (action) {
             case "topup_token":
-                return { label: "Top-up Token", color: "bg-blue-100 text-blue-700", icon: "💳" };
-            case "book_ticket":
-                return { label: "Book Ticket", color: "bg-green-100 text-green-700", icon: "🎫" };
-            case "cancel_ticket":
-                return { label: "Cancel Ticket", color: "bg-red-100 text-red-700", icon: "❌" };
+                return { label: "Top-up Token", color: "bg-blue-100 text-blue-700", icon: "💳", border: "#3B82F6" };
+            case "ticket":
+                if (details?.status === "expired") {
+                    return { label: "Ticket Expired", color: "bg-red-100 text-red-700", icon: "⏰", border: "#EF4444" };
+                }
+                return { label: "Ticket Booking", color: "bg-green-100 text-green-700", icon: "🎫", border: "#22C55E" };
+            case "payment":
+                if (details?.status === "failed") {
+                    return { label: "Payment Failed", color: "bg-red-100 text-red-700", icon: "⚠️", border: "#EF4444" };
+                }
+                if (details?.status === "cancel_and_refund") {
+                    return { label: "Cancel & Refund", color: "bg-orange-100 text-orange-700", icon: "↩️", border: "#F97316" };
+                }
+                return { label: "Payment Success", color: "bg-emerald-100 text-emerald-700", icon: "✅", border: "#10B981" };
             default:
-                return { label: action, color: "bg-gray-100 text-gray-700", icon: "📄" };
+                return { label: action, color: "bg-gray-100 text-gray-700", icon: "📄", border: "#9CA3AF" };
         }
     };
 
@@ -69,53 +134,96 @@ function TransactionHistory() {
         });
     };
 
+    const getBookingStatusColor = (status) => {
+        switch (status) {
+            case "booking":
+                return "text-blue-600";
+            case "paid":
+                return "text-green-600";
+            case "pending":
+                return "text-yellow-600";
+            case "expired":
+                return "text-red-600";
+            default:
+                return "text-gray-600";
+        }
+    };
+
     const renderDetails = (action, details) => {
         switch (action) {
             case "topup_token":
                 return (
                     <>
                         <p className="text-gray-600">
-                            🪙 Amount: <span className="font-semibold">{details.amount} Tokens</span>
+                            🪙 Amount: <span className="font-semibold text-blue-600">+{details.amount} Tokens</span>
                         </p>
                         <p className="text-gray-600">
-                            💳 Payment: {details.payment_method}
-                        </p>
-                        <p className="text-gray-500 text-sm">
-                            Ref: {details.reference_code}
+                            💳 Payment Method: {details.payment_method}
                         </p>
                     </>
                 );
-            case "book_ticket":
+            case "ticket":
                 return (
                     <>
                         <p className="text-gray-600">
-                            🎪 Event ID: {details.event_id}
+                            🎪 Event: <span className="font-semibold">{details.event_name}</span>
                         </p>
                         <p className="text-gray-600">
-                            📍 Zone: {details.zone_name}
+                            📍 Zone: {details.zone_name} &nbsp; | &nbsp; 🎟️ Quantity: {details.quantity}
                         </p>
                         <p className="text-gray-600">
-                            🪙 Tokens Deducted: <span className="font-semibold text-red-600">-{details.tokens_deducted}</span>
+                            🪙 Price: {details.price.toFixed(2)} THB
                         </p>
                     </>
                 );
-            case "cancel_ticket":
-                return (
-                    <>
-                        <p className="text-gray-600">
-                            🎫 Booking ID: {details.booking_id}
-                        </p>
-                        <p className="text-gray-600">
-                            🎪 Event ID: {details.event_id}
-                        </p>
-                        <p className="text-gray-600">
-                            🪙 Refunded: <span className="font-semibold text-green-600">+{details.refunded_tokens}</span>
-                        </p>
-                        {details.reason && (
-                            <p className="text-gray-500 text-sm">
-                                📝 Reason: {details.reason}
+            case "payment":
+                if (details.status === "success") {
+                    return (
+                        <>
+                            <p className="text-gray-600">
+                                🎪 Event: <span className="font-semibold">{details.event_name}</span>
                             </p>
-                        )}
+                            <p className="text-gray-600">
+                                📍 Zone: {details.zone_name} &nbsp; | &nbsp; 🎟️ Quantity: {details.quantity}
+                            </p>
+                            <p className="text-gray-600">
+                                🪙 Amount Paid: <span className="font-semibold text-green-600">{details.amount_paid.toFixed(2)} THB</span>
+                            </p>
+                        </>
+                    );
+                }
+                if (details.status === "cancel_and_refund") {
+                    return (
+                        <>
+                            <p className="text-gray-600">
+                                🎪 Event: <span className="font-semibold">{details.event_name}</span>
+                            </p>
+                            <p className="text-gray-600">
+                                📍 Zone: {details.zone_name} &nbsp; | &nbsp; 🎟️ Quantity: {details.quantity}
+                            </p>
+                            <p className="text-gray-600">
+                                🪙 Refunded: <span className="font-semibold text-green-600">+{details.refunded_tokens.toFixed(2)} THB</span>
+                            </p>
+                            {details.reason && (
+                                <p className="text-gray-500 text-sm">
+                                    📝 Reason: {details.reason}
+                                </p>
+                            )}
+                        </>
+                    );
+                }
+                // failed
+                return (
+                    <>
+                        <p className="text-gray-600">
+                            🎪 Event: <span className="font-semibold">{details.event_name}</span>
+                        </p>
+                        <p className="text-gray-600">
+                            📍 Zone: {details.zone_name} &nbsp; | &nbsp; 🎟️ Quantity: {details.quantity}
+                        </p>
+                        <p className="text-gray-600">
+                            🪙 Attempted: <span className="font-semibold text-red-600">{details.amount_paid.toFixed(2)} THB</span>
+                        </p>
                     </>
                 );
             default:
@@ -149,17 +257,12 @@ function TransactionHistory() {
                 ) : (
                     <div className="space-y-4">
                         {visibleTransactions.map((txn) => {
-                            const style = getActionStyle(txn.action);
+                            const style = getActionStyle(txn.action, txn.details);
                             return (
                                 <div
                                     key={txn._id}
                                     className="bg-white shadow-md rounded-xl p-5 border-l-4"
-                                    style={{
-                                        borderLeftColor:
-                                            txn.action === "topup_token" ? "#3B82F6"
-                                                : txn.action === "book_ticket" ? "#22C55E"
-                                                    : "#EF4444",
-                                    }}
+                                    style={{ borderLeftColor: style.border }}
                                 >
                                     {/* Header */}
                                     <div className="flex items-center justify-between mb-3">
