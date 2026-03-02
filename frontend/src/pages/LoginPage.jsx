@@ -52,20 +52,36 @@ function LoginPage() {
 
         <label style={{ marginTop: "10px" }}>Username</label>
         <input
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          required
-          style={{ marginTop: "5px", padding: "8px" }}
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+            style={{
+                marginTop: "5px",
+                padding: "10px",
+                borderRadius: "8px",
+                border: "1px solid rgba(255,255,255,0.6)",
+                backgroundColor: "rgba(255,255,255,0.15)",
+                color: "white",
+                outline: "none"
+            }}
         />
 
         <label style={{ marginTop: "10px" }}>Password</label>
         <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          style={{ marginTop: "5px", padding: "8px" }}
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            style={{
+                marginTop: "5px",
+                padding: "10px",
+                borderRadius: "8px",
+                border: "1px solid rgba(255,255,255,0.6)",
+                backgroundColor: "rgba(255,255,255,0.15)",
+                color: "white",
+                outline: "none"
+            }}
         />
 
         <button
