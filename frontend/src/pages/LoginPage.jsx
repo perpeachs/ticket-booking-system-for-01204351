@@ -1,10 +1,14 @@
 import { useState } from "react";
 import bgImage from "../assets/thumb-1920-1172157.jpeg";
+import { useNavigate } from "react-router-dom";
+
+
 
 function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const navigate = useNavigate();
 
   function handleLogin(e) {
     e.preventDefault();
@@ -94,6 +98,19 @@ function LoginPage() {
         >
           Login
         </button>
+        <p style={{ marginTop: "15px", textAlign: "center" }}>
+  Don't have an account?{" "}
+  <span
+    onClick={() => navigate("/register")}
+    style={{
+      color: "white",
+      cursor: "pointer",
+      textDecoration: "underline"
+    }}
+  >
+    Register
+  </span>
+</p>
       </form>
     </div>
   );
