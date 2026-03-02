@@ -3,7 +3,7 @@ import Header from "./components/Header";
 import HomePage from "./pages/HomePage";
 import ConcertPage from "./pages/ConcertPage";
 import AboutPage from "./pages/AboutPage";
-// import UserProfilePage from "./pages/UserProfilePage";
+import UserProfilePage from "./pages/UserProfilePage";
 // import LoginPage from "./pages/LoginPage";
 import BookingPage from "./pages/BookingPage";
 
@@ -29,7 +29,7 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/concert" element={<ConcertPage />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/profile" element={<h1>Profile</h1>} />
+          <Route path="/profile" element={<UserProfilePage />} />
           <Route path="/login" element={<h1>Login</h1>} />
           <Route path="/booking/:id" element={<BookingPage />} />
         </Routes>
