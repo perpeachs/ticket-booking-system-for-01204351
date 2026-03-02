@@ -6,7 +6,6 @@ function RegisterPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState("user");
   const [errorMessage, setErrorMessage] = useState("");
 
   function handleRegister(e) {
@@ -16,6 +15,7 @@ function RegisterPage() {
       setErrorMessage("Invalid email format");
       return;
     }
+
     if (password !== confirmPassword) {
       setErrorMessage("Passwords do not match");
       return;
@@ -25,7 +25,6 @@ function RegisterPage() {
       email,
       username,
       password,
-      role,
     };
 
     localStorage.setItem("mockUser", JSON.stringify(userData));
@@ -35,7 +34,6 @@ function RegisterPage() {
 
   return (
     <div
-    
       style={{
         display: "flex",
         justifyContent: "center",
@@ -47,7 +45,6 @@ function RegisterPage() {
       }}
     >
       <form
-
         onSubmit={handleRegister}
         style={{
           display: "flex",
@@ -59,21 +56,7 @@ function RegisterPage() {
           borderRadius: "15px",
           color: "white",
         }}
-        
       >
-        <style>
-    {`
-      select option {
-        background-color: #1e1e1e;
-        color: white;
-            }
-
-                select option:checked {
-                background-color: #4f46e5;
-                color: white;
-            }
-    `       }
-        </style>
         <h2>Register</h2>
 
         {errorMessage && (
@@ -116,16 +99,6 @@ function RegisterPage() {
           style={inputStyle}
         />
 
-        <label style={{ marginTop: "10px" }}>Role</label>
-        <select
-  value={role}
-  onChange={(e) => setRole(e.target.value)}
-  style={selectStyle}
->
-  <option value="user">User</option>
-  <option value="admin">Admin</option>
-</select>
-
         <button
           type="submit"
           style={{
@@ -133,7 +106,7 @@ function RegisterPage() {
             padding: "10px",
             borderRadius: "8px",
             border: "none",
-            cursor: "pointer"
+            cursor: "pointer",
           }}
         >
           Register
@@ -150,17 +123,7 @@ const inputStyle = {
   border: "1px solid rgba(255,255,255,0.6)",
   backgroundColor: "rgba(255,255,255,0.15)",
   color: "white",
-  outline: "none"
-};
-
-const selectStyle = {
-  marginTop: "5px",
-  padding: "10px",
-  borderRadius: "8px",
-  border: "1px solid rgba(255,255,255,0.6)",
-  backgroundColor: "rgba(255,255,255,0.15)",
-  color: "white",
-  outline: "none"
+  outline: "none",
 };
 
 export default RegisterPage;
