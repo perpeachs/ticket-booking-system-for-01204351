@@ -5,6 +5,7 @@ import ConcertPage from "./pages/ConcertPage";
 import AboutPage from "./pages/AboutPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
 import BookingPage from "./pages/BookingPage";
 import TransactionHistory from "./pages/TransactionHistory";
 
@@ -12,7 +13,9 @@ function Layout({ children }) {
   const location = useLocation();
 
   // ซ่อน header ในหน้า login
-  const hideHeader = location.pathname === "/login";
+ const hideHeader =
+  location.pathname === "/login" ||
+  location.pathname === "/register";
 
   return (
     <>
@@ -32,6 +35,7 @@ function App() {
           <Route path="/about" element={<AboutPage />} />
           <Route path="/profile" element={<UserProfilePage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route path="/booking/:id" element={<BookingPage />} />
           <Route path="/history" element={<TransactionHistory />} />
         </Routes>
