@@ -1,5 +1,6 @@
 import { useState } from "react";
 import bgImage from "../assets/thumb-1920-1172157.jpeg";
+import { useNavigate } from "react-router-dom";
 
 function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -7,6 +8,7 @@ function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const navigate = useNavigate();
 
   function handleRegister(e) {
   e.preventDefault();
@@ -41,6 +43,7 @@ function RegisterPage() {
 
       alert("Register success!");
       setErrorMessage("");
+      navigate("/login");
     })
     .catch((err) => {
       setErrorMessage(err.message);
