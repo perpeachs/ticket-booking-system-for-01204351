@@ -1,20 +1,21 @@
 import { useState } from "react";
 import bgImage from "../assets/thumb-1920-1172157.jpeg";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
-
-
-function LoginPage() {
+function LoginPage({ loginUrl }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   function handleLogin(e) {
     e.preventDefault();
 
     if (username === "admin" && password === "1234") {
-      alert("Login success (mock)");
+      login({ username });
+      navigate("/home");
     } else {
       setErrorMessage("Invalid username or password");
     }
@@ -30,7 +31,7 @@ function LoginPage() {
         backgroundImage: `url(${bgImage})`,
         backgroundSize: "cover",
         backgroundPosition: "center",
-        backgroundRepeat: "no-repeat"
+        backgroundRepeat: "no-repeat",
       }}
     >
       <form
@@ -41,51 +42,49 @@ function LoginPage() {
           width: "300px",
           padding: "24px",
           background: "rgba(255, 255, 255, 0.2)",
-          backdropFilter: "blur(12px)", 
+          backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
           borderRadius: "15px",
           border: "1px solid rgba(255,255,255,0.3)",
-          color: "white"
+          color: "white",
         }}
       >
         <h2>Login</h2>
 
-        {errorMessage && (
-          <p style={{ color: "red" }}>{errorMessage}</p>
-        )}
+        {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
 
         <label style={{ marginTop: "10px" }}>Username</label>
         <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            style={{
-                marginTop: "5px",
-                padding: "10px",
-                borderRadius: "8px",
-                border: "1px solid rgba(255,255,255,0.6)",
-                backgroundColor: "rgba(255,255,255,0.15)",
-                color: "white",
-                outline: "none"
-            }}
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          required
+          style={{
+            marginTop: "5px",
+            padding: "10px",
+            borderRadius: "8px",
+            border: "1px solid rgba(255,255,255,0.6)",
+            backgroundColor: "rgba(255,255,255,0.15)",
+            color: "white",
+            outline: "none",
+          }}
         />
 
         <label style={{ marginTop: "10px" }}>Password</label>
         <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{
-                marginTop: "5px",
-                padding: "10px",
-                borderRadius: "8px",
-                border: "1px solid rgba(255,255,255,0.6)",
-                backgroundColor: "rgba(255,255,255,0.15)",
-                color: "white",
-                outline: "none"
-            }}
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          style={{
+            marginTop: "5px",
+            padding: "10px",
+            borderRadius: "8px",
+            border: "1px solid rgba(255,255,255,0.6)",
+            backgroundColor: "rgba(255,255,255,0.15)",
+            color: "white",
+            outline: "none",
+          }}
         />
 
         <button
@@ -93,24 +92,24 @@ function LoginPage() {
           style={{
             marginTop: "15px",
             padding: "10px",
-            cursor: "pointer"
+            cursor: "pointer",
           }}
         >
           Login
         </button>
         <p style={{ marginTop: "15px", textAlign: "center" }}>
-  Don't have an account?{" "}
-  <span
-    onClick={() => navigate("/register")}
-    style={{
-      color: "white",
-      cursor: "pointer",
-      textDecoration: "underline"
-    }}
-  >
-    Register
-  </span>
-</p>
+          Don't have an account?{" "}
+          <span
+            onClick={() => navigate("/register")}
+            style={{
+              color: "white",
+              cursor: "pointer",
+              textDecoration: "underline",
+            }}
+          >
+            Register
+          </span>
+        </p>
       </form>
     </div>
   );
