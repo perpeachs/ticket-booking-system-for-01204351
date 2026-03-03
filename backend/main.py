@@ -6,7 +6,7 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 from flask_migrate import Migrate
 
 from extensions import db, bcrypt
-from models import User
+from models import User, Booking, Zone, Event, Payment
 
 app = Flask(__name__)
 CORS(app)
@@ -161,6 +161,78 @@ def update_password():
     db.session.commit()
 
     return jsonify({"message": "Password updated successfully"}), 200
+
+# ============ Bookings APIs ============
+
+@app.route("/api/user/bookings", methods=["GET"])
+@jwt_required()
+def get_bookings():
+    user_id = get_jwt_identity()
+    bookings = Booking.query.filter(Booking.user_id == int(user_id), Booking.status != "canceled").order_by(Booking.status.desc(), Booking.created_at.desc()).all()
+
+    result = []
+    for b in bookings:
+        zone = Zone.query.get(b.zone_id)
+        event = Event.query.get(zone.event_id)
+        payment = Payment.query.get(b.payment_id)
+
+        result.append({
+            "id": b.id,
+            "concertName": event.title,
+            "date": event.event_datetime.strftime("%d %B %Y"),
+            "zone": zone.name,
+            "quantity": b.quantity,
+            "price": payment.total_price,
+            "status": b.status,
+            "created_at": b.created_at.isoformat(),
+        })
+
+    return jsonify(result), 200
+
+
+@app.route("/api/user/bookings/<int:booking_id>/cancel", methods=["PUT"])
+@jwt_required()
+def cancel_booking(booking_id):
+    user_id = get_jwt_identity()
+    booking = Booking.query.filter_by(id=booking_id, user_id=int(user_id)).first()
+
+    if not booking:
+        return jsonify({"error": "Booking not found"}), 404
+
+    if booking.status == "canceled":
+        return jsonify({"error": "Booking is already canceled"}), 400
+
+    if booking.status == "expired":
+        return jsonify({"error": "Booking is already expired"}), 400
+
+    try:
+        zone = Zone.query.get(booking.zone_id)
+        zone.capacity += booking.quantity
+
+        payment = Payment.query.get(booking.payment_id)
+        payment.status = "refunded"
+
+        user = User.query.get(booking.user_id)
+        user.tokens += payment.total_price
+
+        #log_transaction(
+            #user_id=int(user_id),
+            #action="ticket",
+            #details={
+                #"status": "cancel_and_refund",
+                #"booking_id": booking.id,
+                #"amount_refunded": payment.total_price
+            #}
+        #)
+
+        booking.status = "canceled"
+        db.session.commit()
+
+        return jsonify({"message": "Booking canceled successfully"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 
 if __name__ == "__main__":
