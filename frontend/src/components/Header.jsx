@@ -14,8 +14,8 @@ function Header() {
   const navLinkClass = ({ isActive }) =>
     `px-3 py-2 rounded-md text-sm font-medium transition ${
       isActive
-        ? "text-blue-600 bg-blue-50"
-        : "text-gray-700 hover:text-blue-600 hover:bg-gray-100"
+      ? "text-blue-600 bg-blue-50"
+      : "text-gray-700 hover:text-blue-600 hover:bg-gray-100"
     }`;
 
   return (
@@ -43,6 +43,17 @@ function Header() {
 
         {/* Profile + Logout */}
         <div className="flex items-center gap-3">
+          {/* Token Balance (mock data) */}
+          <NavLink
+            to="/top-up"
+          >
+            <span className="text-lg">🪙</span>
+            <span className="text-sm font-semibold text-yellow-700">
+              1,500
+            </span>
+          </NavLink>
+
+          {/* Profile */}
           <NavLink
             to="/profile"
             className="flex items-center gap-2 hover:bg-gray-100 px-3 py-2 rounded-md transition"

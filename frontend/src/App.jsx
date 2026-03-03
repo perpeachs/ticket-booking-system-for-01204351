@@ -14,6 +14,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import BookingPage from "./pages/BookingPage";
 import TransactionHistory from "./pages/TransactionHistory";
+import TopUpTokens from "./pages/TopUpTokens";
 import { useAuth } from "./context/AuthContext";
 
 const TODOLIST_LOGIN_URL = "http://localhost:5000/api/login/";
@@ -105,6 +106,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <TransactionHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/top-up"
+            element={
+              <ProtectedRoute>
+                <TopUpTokens />
               </ProtectedRoute>
             }
           />
