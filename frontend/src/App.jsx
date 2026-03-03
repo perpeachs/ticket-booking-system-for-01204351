@@ -17,11 +17,11 @@ import TransactionHistory from "./pages/TransactionHistory";
 import TopUpTokens from "./pages/TopUpTokens";
 import { useAuth } from "./context/AuthContext";
 
-const TODOLIST_LOGIN_URL = "http://localhost:5000/api/login/";
+const TODOLIST_LOGIN_URL = "http://localhost:5000/api/auth/login";
 
 // Redirect to /login if user is not authenticated
 function ProtectedRoute({ children }) {
-  const { user } = useAuth();
+  const { accessToken } = useAuth();
   if (!user) {
     return <Navigate to="/login" replace />;
   }
@@ -56,8 +56,8 @@ function App() {
             element={<LoginPage loginUrl={TODOLIST_LOGIN_URL} />}
           />
           <Route
-            path="/register"
-            element={<RegisterPage loginUrl={TODOLIST_LOGIN_URL} />}
+          path="/register"
+          element={<RegisterPage />}
           />
 
           {/* Protected routes - require login */}

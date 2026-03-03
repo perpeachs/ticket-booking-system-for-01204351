@@ -41,7 +41,7 @@ function RegisterPage() {
         throw new Error(data.message || "Register failed");
       }
 
-      alert("Register success!");
+
       setErrorMessage("");
       navigate("/login");
     })
