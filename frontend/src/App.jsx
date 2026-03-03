@@ -21,7 +21,7 @@ const TODOLIST_LOGIN_URL = "http://localhost:5000/api/auth/login";
 
 // Redirect to /login if user is not authenticated
 function ProtectedRoute({ children }) {
-  const { accessToken } = useAuth();
+  const { user } = useAuth();
   if (!user) {
     return <Navigate to="/login" replace />;
   }
