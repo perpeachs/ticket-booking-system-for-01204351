@@ -10,6 +10,7 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     role = db.Column(db.String(20), default="user")
     password_hash = db.Column(db.String(255), nullable=False)
+    tokens = db.Column(db.Integer, default=0)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
@@ -33,6 +34,7 @@ class Event(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
+    expired_at = db.Column(db.DateTime, nullable=True)
 
     zones = db.relationship("Zone", backref="event", lazy=True)
 
@@ -45,6 +47,7 @@ class Zone(db.Model):
     name = db.Column(db.String(100), nullable=False)
     capacity = db.Column(db.Integer, nullable=False)
     price = db.Column(db.Float, nullable=False)
+    is_available = db.Column(db.Boolean, default=True)
 
     __table_args__ = (
         db.UniqueConstraint("event_id", "name", name="unique_event_zone"),
@@ -57,7 +60,6 @@ class Payment(db.Model):
     __tablename__ = "payments"
 
     id = db.Column(db.Integer, primary_key=True)
-    amount = db.Column(db.Integer, nullable=False)
     total_price = db.Column(db.Float, nullable=False)
     status = db.Column(db.String(20), default="pending")
     paid_at = db.Column(db.DateTime, nullable=True)
