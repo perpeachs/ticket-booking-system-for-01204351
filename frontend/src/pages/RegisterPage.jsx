@@ -9,28 +9,43 @@ function RegisterPage() {
   const [errorMessage, setErrorMessage] = useState("");
 
   function handleRegister(e) {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      setErrorMessage("Invalid email format");
-      return;
-    }
+  if (!/\S+@\S+\.\S+/.test(email)) {
+    setErrorMessage("Invalid email format");
+    return;
+  }
 
-    if (password !== confirmPassword) {
-      setErrorMessage("Passwords do not match");
-      return;
-    }
+  if (password !== confirmPassword) {
+    setErrorMessage("Passwords do not match");
+    return;
+  }
 
-    const userData = {
+  fetch("http://127.0.0.1:5000/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
       email,
       username,
       password,
-    };
+    }),
+  })
+    .then(async (res) => {
+      const data = await res.json();
 
-    localStorage.setItem("mockUser", JSON.stringify(userData));
+      if (!res.ok) {
+        throw new Error(data.message || "Register failed");
+      }
 
-    alert("Register success (mock)");
-  }
+      alert("Register success!");
+      setErrorMessage("");
+    })
+    .catch((err) => {
+      setErrorMessage(err.message);
+    });
+}
 
   return (
     <div

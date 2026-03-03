@@ -1,33 +1,84 @@
+import os
 from flask import Flask, request, jsonify
+from flask_cors import CORS
+from flask_jwt_extended import JWTManager, create_access_token
+from flask_migrate import Migrate
+
 from extensions import db, bcrypt
 from models import User
 
 app = Flask(__name__)
+CORS(app)
 
-@app.route("/api/auth/register", methods=["POST"])
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
+    'SQLALCHEMY_DATABASE_URI',
+    'sqlite:///todos.db'
+)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['JWT_SECRET_KEY'] = os.getenv(
+    'JWT_SECRET_KEY',
+    'fdslkfjsdlkufewhjroiewurewrew'
+)
+
+
+db.init_app(app)
+bcrypt.init_app(app)
+jwt = JWTManager(app)
+migrate = Migrate(app, db)
+
+
+with app.app_context():
+    db.create_all()
+
+
+@app.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
-    hashed = bcrypt.generate_password_hash(data["password"]).decode("utf-8")
 
-    user = User(
-        username=data["username"],
-        email=data["email"],
-        password_hash=hashed
+    email = data.get("email")
+    username = data.get("username")
+    password = data.get("password")
+
+    if User.query.filter_by(username=username).first():
+        return jsonify({"message": "Username already exists"}), 400
+
+    hashed_pw = bcrypt.generate_password_hash(password).decode("utf-8")
+
+    new_user = User(
+    email=email,
+    username=username,
+    password_hash=hashed_pw
     )
 
-    db.session.add(user)
+    db.session.add(new_user)
     db.session.commit()
 
-    return jsonify({"message": "User created"})
+    return jsonify({"message": "User registered successfully"}), 201
 
 
 @app.route("/api/auth/login", methods=["POST"])
 def login():
     data = request.get_json()
 
-    user = User.query.filter_by(email=data["email"]).first()
+    if not data or not data.get("username") or not data.get("password"):
+        return jsonify({"error": "Missing username or password"}), 400
+
+    user = User.query.filter_by(username=data["username"]).first()
 
     if not user:
-        return jsonify({"error": "Invalid"}), 401
+        return jsonify({"error": "User not found"}), 404
 
-    return jsonify({"message": "Login success"})
+    if not bcrypt.check_password_hash(user.password_hash, data["password"]):
+        return jsonify({"error": "Wrong password"}), 401
+
+    token = create_access_token(identity=user.id)
+
+    return jsonify({
+        "message": "Login successful",
+        "access_token": token
+    }), 200
+
+
+if __name__ == "__main__":
+    app.run(debug=True)

@@ -10,16 +10,36 @@ function LoginPage({ loginUrl }) {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  function handleLogin(e) {
-    e.preventDefault();
+  async function handleLogin(e) {
+  e.preventDefault();
+  setErrorMessage("");
 
-    if (username === "admin" && password === "1234") {
-      login({ username });
-      navigate("/home");
-    } else {
-      setErrorMessage("Invalid username or password");
+  try {
+    const response = await fetch("http://127.0.0.1:5000/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        username: username,
+        password: password
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setErrorMessage(data.error || "Login failed");
+      return;
     }
+
+    localStorage.setItem("token", data.access_token);
+    login({ username });
+    navigate("/home");
+  } catch (error) {
+    setErrorMessage("Server error");
   }
+}
 
   return (
     <div
