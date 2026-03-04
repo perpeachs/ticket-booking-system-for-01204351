@@ -12,15 +12,9 @@ app = Flask(__name__)
 CORS(app)
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
-    'SQLALCHEMY_DATABASE_URI',
-    'sqlite:///todos.db'
-)
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = os.getenv(
-    'JWT_SECRET_KEY',
-    'fdslkfjsdlkufewhjroiewurewrew'
-)
+app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
 
 
 db.init_app(app)
@@ -79,6 +73,25 @@ def login():
         "message": "Login successful",
         "access_token": token
     }), 200
+
+
+# ============ Concerts APIs ============
+
+@app.route("/api/concerts", methods=["GET"])
+@jwt_required()
+def get_concerts():
+    events = Event.query.all()
+    result = []
+    for event in events:
+        result.append({
+            "id": event.id,
+            "name": event.title,
+            "date": event.event_datetime.strftime("%d %B %Y"),
+            "location": event.location,
+            "image": event.image_url or "https://picsum.photos/400/250?random=" + str(event.id),
+            "status": event.status
+        })
+    return jsonify(result), 200
 
 
 # ============ User Profile APIs ============
