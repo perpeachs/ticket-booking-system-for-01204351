@@ -163,6 +163,7 @@ function UserProfilePage() {
         const data = await res.json();
         if (res.ok) {
           showSuccess("Ticket canceled successfully!");
+          window.dispatchEvent(new Event("balanceUpdated"));
         } else {
           showError(data.error || "Failed to cancel ticket");
         }
@@ -369,7 +370,7 @@ function UserProfilePage() {
                     ticket.status === "expired"
                       ? "bg-gray-50 opacity-70"
                       : "bg-white"
-                  }`}
+                    }`}
                 >
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800">
@@ -389,7 +390,7 @@ function UserProfilePage() {
                           : ticket.status === "pending"
                             ? "bg-yellow-100 text-yellow-700"
                             : "bg-gray-200 text-gray-600"
-                      }`}
+                        }`}
                     >
                       {ticket.status === "paid"
                         ? "Paid"

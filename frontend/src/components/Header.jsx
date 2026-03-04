@@ -1,10 +1,46 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+
+const API_BASE = "http://127.0.0.1:5000";
 
 function Header() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
+  const token = localStorage.getItem("token");
+
+  const [balance, setBalance] = useState(0);
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/user/profile`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setBalance(data.tokens);
+        }
+      } catch (err) {
+        console.error("Failed to fetch balance in header:", err);
+      }
+    };
+
+    fetchBalance();
+    
+    // Listen for custom event to refresh balance immediately
+    const handleBalanceUpdate = () => {
+      fetchBalance();
+    };
+    window.addEventListener("balanceUpdated", handleBalanceUpdate);
+
+    return () => {
+      window.removeEventListener("balanceUpdated", handleBalanceUpdate);
+    };
+  }, [token]);
 
   function handleLogout() {
     logout();
@@ -43,13 +79,13 @@ function Header() {
 
         {/* Profile + Logout */}
         <div className="flex items-center gap-3">
-          {/* Token Balance (mock data) */}
+          {/* Token Balance */}
           <NavLink
             to="/top-up"
           >
             <span className="text-lg">🪙</span>
             <span className="text-sm font-semibold text-yellow-700">
-              1,500
+              {balance.toLocaleString()}
             </span>
           </NavLink>
 

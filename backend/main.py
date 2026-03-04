@@ -235,5 +235,44 @@ def cancel_booking(booking_id):
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 
+@app.route("/api/user/topup", methods=["POST"])
+@jwt_required()
+def topup():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    data = request.get_json()
+    amount = data.get("amount")
+    paymentMethod = data.get("payment_method")
+
+    if amount is None or not isinstance(amount, (int, float)) or amount <= 0:
+        return jsonify({"error": "Invalid amount"}), 400
+
+    try:
+        user.tokens += amount
+        db.session.commit()
+
+        # log_transaction(
+        #     user_id=int(user_id),
+        #     action="topup",
+        #     details={
+        #         "amount": amount,
+        #         "new_balance": user.tokens,
+        #         "payment_method": paymentMethod
+        #     }
+        # )
+
+        return jsonify({
+            "message": "Top-up successful",
+            "new_balance": user.tokens
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+
 if __name__ == "__main__":
     app.run(debug=True)

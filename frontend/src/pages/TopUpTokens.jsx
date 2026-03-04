@@ -1,14 +1,18 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const API_BASE = "http://127.0.0.1:5000";
+
 function TopUpTokens() {
     const navigate = useNavigate();
+    const token = localStorage.getItem("token");
 
-    // Mock current balance
-    const [balance, setBalance] = useState(1500);
+    const [balance, setBalance] = useState(0);
     const [selectedAmount, setSelectedAmount] = useState(null);
     const [paymentMethod, setPaymentMethod] = useState("");
     const [successMessage, setSuccessMessage] = useState("");
+    const [errorMessage, setErrorMessage] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const topUpOptions = [100, 500, 1000, 2000, 5000, 10000];
 
@@ -18,16 +22,81 @@ function TopUpTokens() {
         { value: "bank_transfer", label: "Bank Transfer" },
     ];
 
-    const handleTopUp = () => {
+    React.useEffect(() => {
+        fetchBalance();
+    }, [token]);
+
+    const showSuccess = (msg) => {
+        setSuccessMessage(msg);
+        setErrorMessage("");
+        setTimeout(() => setSuccessMessage(""), 3000);
+    };
+
+    const showError = (msg) => {
+        setErrorMessage(msg);
+        setSuccessMessage("");
+        setTimeout(() => setErrorMessage(""), 3000);
+    };
+
+    const fetchBalance = async () => {
+        try {
+            const response = await fetch(`${API_BASE}/api/user/profile`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            const data = await response.json();
+            if (response.ok) {
+                setBalance(data.tokens);
+            }
+        } catch (err) {
+            console.error("Failed to fetch balance:", err);
+            showError("Failed to load balance");
+        }
+    };
+
+    const handleTopUp = async () => {
         if (!selectedAmount || !paymentMethod) return;
-        setBalance((prev) => prev + selectedAmount);
-        setSuccessMessage(
-            `Top-up successful! +${selectedAmount.toLocaleString()} tokens via ${paymentMethods.find((m) => m.value === paymentMethod)?.label
-            }`
-        );
-        setSelectedAmount(null);
-        setPaymentMethod("");
-        setTimeout(() => setSuccessMessage(""), 4000);
+
+        setLoading(true);
+        setErrorMessage("");
+        setSuccessMessage("");
+
+        try {
+            const response = await fetch(`${API_BASE}/api/user/topup`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    amount: selectedAmount,
+                    payment_method: paymentMethod
+                }),
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                setBalance(data.new_balance);
+                // Trigger refresh in header
+                window.dispatchEvent(new Event("balanceUpdated"));
+
+                showSuccess(
+                    `Top-up successful! +${selectedAmount.toLocaleString()} tokens via ${paymentMethods.find((m) => m.value === paymentMethod)?.label
+                    }`
+                );
+                setSelectedAmount(null);
+                setPaymentMethod("");
+            } else {
+                showError(data.error || "Top-up failed. Please try again.");
+            }
+        } catch (err) {
+            console.error("Top-up error:", err);
+            showError("An error occurred. Please check your connection.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -43,6 +112,13 @@ function TopUpTokens() {
                 {successMessage && (
                     <div className="mb-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg">
                         {successMessage}
+                    </div>
+                )}
+
+                {/* Error Message */}
+                {errorMessage && (
+                    <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+                        {errorMessage}
                     </div>
                 )}
 
@@ -120,14 +196,14 @@ function TopUpTokens() {
                     )}
 
                     <button
-                        disabled={!selectedAmount || !paymentMethod}
+                        disabled={!selectedAmount || !paymentMethod || loading}
                         onClick={handleTopUp}
-                        className={`w-full py-3 rounded-lg text-white font-semibold transition ${selectedAmount && paymentMethod
+                        className={`w-full py-3 rounded-lg text-white font-semibold transition ${selectedAmount && paymentMethod && !loading
                             ? "bg-green-600 hover:bg-green-700"
                             : "bg-gray-400 cursor-not-allowed"
                             }`}
                     >
-                        Confirm Top-up
+                        {loading ? "Processing..." : "Confirm Top-up"}
                     </button>
                 </div>
 
