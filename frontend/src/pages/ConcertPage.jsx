@@ -1,57 +1,79 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+
+const API_BASE = "http://127.0.0.1:5000";
 
 function ConcertPage() {
   const navigate = useNavigate();
 
-  // mock data (ภายหลังเปลี่ยนเป็น data จาก Flask API ได้)
-  const concerts = [
-    {
-      id: 1,
-      name: "Arctic Monkeys Live in Bangkok",
-      date: "10 June 2026",
-      location: "Impact Arena",
-      image: "https://picsum.photos/400/250?random=1",
-      status: "available",
-    },
-    {
-      id: 2,
-      name: "Coldplay Music of the Spheres",
-      date: "15 July 2026",
-      location: "Rajamangala Stadium",
-      image: "https://picsum.photos/400/250?random=2",
-      status: "available",
-    },
-    {
-      id: 3,
-      name: "Taylor Swift Eras Tour",
-      date: "1 Jan 2025",
-      location: "National Stadium",
-      image: "https://picsum.photos/400/250?random=3",
-      status: "ended",
-    },
-  ];
+  const token = localStorage.getItem("token");
+
+  const [concerts, setConcerts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchConcerts = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/concerts`, {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setConcerts(data);
+        } else {
+          setError("Failed to load concerts");
+        }
+      } catch (err) {
+        console.error("Fetch concerts error:", err);
+        setError("An error occurred while fetching concerts");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchConcerts();
+  }, [token]);
 
   return (
     <div className="min-h-screen bg-gray-50 px-6 py-10">
-      
+
       <h1 className="text-3xl font-bold mb-8 text-gray-800">
         Concerts
       </h1>
 
+      {loading && (
+        <div className="text-center py-10">
+          <p className="text-xl text-gray-600 animate-pulse">Loading concerts...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-8">
+          {error}
+        </div>
+      )}
+
+      {!loading && !error && concerts.length === 0 && (
+        <div className="text-center py-10 text-gray-500">
+          <p className="text-xl">No concerts found.</p>
+        </div>
+      )}
+
       <div className="grid md:grid-cols-3 gap-6">
-        
+
         {concerts.map((concert) => (
           <div
             key={concert.id}
             className={`rounded-xl shadow-md overflow-hidden bg-white
-            ${
-              concert.status === "ended"
+            ${concert.status === "ended"
                 ? "opacity-60 grayscale"
                 : "hover:shadow-lg transition"
-            }`}
+              }`}
           >
-            
+
             {/* Image */}
             <img
               src={concert.image}

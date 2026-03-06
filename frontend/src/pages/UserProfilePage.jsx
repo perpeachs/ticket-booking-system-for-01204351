@@ -43,45 +43,25 @@ function UserProfilePage() {
     fetchProfile();
   }, [token]);
 
-  // Mock booked tickets
-  const [bookedTickets, setBookedTickets] = useState([
-    {
-      id: 1,
-      concertName: "Arctic Monkeys Live in Bangkok",
-      date: "10 June 2026",
-      zone: "VIP",
-      quantity: 2,
-      price: 5000,
-      status: "success",
-    },
-    {
-      id: 2,
-      concertName: "Coldplay Music of the Spheres",
-      date: "15 July 2026",
-      zone: "A",
-      quantity: 1,
-      price: 3500,
-      status: "canceled",
-    },
-    {
-      id: 3,
-      concertName: "Taylor Swift Eras Tour",
-      date: "1 Jan 2025",
-      zone: "B",
-      quantity: 3,
-      price: 2500,
-      status: "expired",
-    },
-    {
-      id: 4,
-      concertName: "Ed Sheeran Mathematics Tour",
-      date: "20 Aug 2026",
-      zone: "A",
-      quantity: 1,
-      price: 4000,
-      status: "pending",
-    },
-  ]);
+  const [bookedTickets, setBookedTickets] = useState([]);
+
+  // Load booked tickets from API on mount
+  useEffect(() => {
+    async function fetchBookedTickets() {
+      try {
+        const res = await fetch(`${API_BASE}/api/user/bookings`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setBookedTickets(data);
+        }
+      } catch {
+        setErrorMessage("Failed to load booked tickets");
+      }
+    }
+    fetchBookedTickets();
+  }, [token]);
 
   const showSuccess = (msg) => {
     setSaveMessage(msg);
@@ -169,16 +149,27 @@ function UserProfilePage() {
     }
   };
 
-  const handleCancelTicket = (ticketId) => {
+  const handleCancelTicket = async (ticketId) => {
     if (window.confirm("Are you sure you want to cancel this ticket?")) {
-      setBookedTickets((prev) =>
-        prev.map((t) =>
-          t.id === ticketId
-            ? { ...t, status: "canceled", is_deleted: true }
-            : t,
-        ),
-      );
-      showSuccess("Ticket canceled successfully!");
+      try {
+        const res = await fetch(`${API_BASE}/api/user/bookings/${ticketId}/cancel`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ status: "canceled" }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showSuccess("Ticket canceled successfully!");
+          window.dispatchEvent(new Event("balanceUpdated"));
+        } else {
+          showError(data.error || "Failed to cancel ticket");
+        }
+      } catch {
+        showError("Server error");
+      }
     }
   };
 
@@ -347,7 +338,9 @@ function UserProfilePage() {
                 </div>
               ) : (
                 <>
-                  <span className="flex-1 text-lg text-gray-800">••••••••</span>
+                  <span className="flex-1 text-lg text-gray-800">
+                    ••••••••
+                  </span>
                   <button
                     onClick={() => setIsEditingPassword(true)}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
@@ -367,16 +360,17 @@ function UserProfilePage() {
           </h2>
 
           <div className="space-y-4">
-            {bookedTickets
-              .filter((t) => t.status !== "canceled" && t.status !== "expired")
-              .map((ticket) => (
+            {bookedTickets.length === 0 ? (
+              <p className="text-gray-600">No booked tickets found.</p>
+            ) : (
+              bookedTickets.map((ticket) => (
                 <div
                   key={ticket.id}
                   className={`border rounded-lg p-4 flex items-center justify-between ${
-                    ticket.status === "completed"
+                    ticket.status === "expired"
                       ? "bg-gray-50 opacity-70"
                       : "bg-white"
-                  }`}
+                    }`}
                 >
                   <div>
                     <h3 className="text-lg font-semibold text-gray-800">
@@ -391,20 +385,20 @@ function UserProfilePage() {
                   <div className="flex items-center gap-3">
                     <span
                       className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        ticket.status === "success"
+                        ticket.status === "paid"
                           ? "bg-green-100 text-green-700"
                           : ticket.status === "pending"
                             ? "bg-yellow-100 text-yellow-700"
                             : "bg-gray-200 text-gray-600"
-                      }`}
+                        }`}
                     >
-                      {ticket.status === "success"
-                        ? "Success"
+                      {ticket.status === "paid"
+                        ? "Paid"
                         : ticket.status === "pending"
                           ? "Pending"
-                          : "Canceled"}
+                          : "Completed"}
                     </span>
-                    {ticket.status === "success" && (
+                    {ticket.status === "paid" && (
                       <button
                         onClick={() => handleCancelTicket(ticket.id)}
                         className="bg-red-500 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-red-600 transition"
@@ -414,7 +408,8 @@ function UserProfilePage() {
                     )}
                   </div>
                 </div>
-              ))}
+              ))
+            )}
           </div>
         </div>
 
