@@ -4,9 +4,11 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_migrate import Migrate
+from datetime import datetime
 
 from extensions import db, bcrypt
 from models import User, Booking, Zone, Event, Payment
+#from expiration_manager import start_expiration_scheduler
 
 app = Flask(__name__)
 CORS(app)
@@ -25,6 +27,7 @@ migrate = Migrate(app, db)
 
 with app.app_context():
     db.create_all()
+    #start_expiration_scheduler(app)
 
 
 @app.route("/register", methods=["POST"])
@@ -67,6 +70,9 @@ def login():
     if not bcrypt.check_password_hash(user.password_hash, data["password"]):
         return jsonify({"error": "Wrong password"}), 401
 
+    if user.deleted_at:
+        return jsonify({"error": "User is deleted"}), 401
+
     token = create_access_token(identity=str(user.id))
 
     return jsonify({
@@ -93,6 +99,21 @@ def get_concerts():
         })
     return jsonify(result), 200
 
+
+@app.route("/api/concerts/<int:event_id>/zones", methods=["GET"])
+@jwt_required()
+def get_zones(event_id):
+    zones = Zone.query.filter_by(event_id=event_id, is_available=True).all()
+    result = []
+    for zone in zones:
+        result.append({
+            "id": zone.id,
+            "name": zone.name,
+            "capacity": zone.capacity,
+            "price": zone.price,
+            "is_available": zone.is_available
+        })
+    return jsonify(result), 200
 
 # ============ User Profile APIs ============
 
@@ -203,6 +224,89 @@ def get_bookings():
     return jsonify(result), 200
 
 
+@app.route("/api/bookings", methods=["POST"])
+@jwt_required()
+def create_booking():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+
+    zone_id = data.get("zone_id")
+    quantity = data.get("quantity")
+
+    if not zone_id or not quantity:
+        return jsonify({"error": "Missing zone_id or quantity"}), 400
+
+    if not isinstance(quantity, int) or quantity <= 0:
+        return jsonify({"error": "Quantity must be a positive integer"}), 400
+
+    if quantity > 6:
+        return jsonify({"error": "Maximum 6 tickets allowed per booking"}), 400
+
+    try:
+        # Use with_for_update() to lock the zone record and prevent race conditions
+        zone = Zone.query.filter_by(id=zone_id).with_for_update().first()
+
+        if not zone:
+            return jsonify({"error": "Zone not found"}), 404
+
+        if zone.capacity < quantity:
+            return jsonify({
+                "error": "Insufficient capacity",
+                "available": zone.capacity
+            }), 400
+
+        user = User.query.get(user_id)
+        total_price = zone.price * quantity
+
+        # Determine status based on tokens
+        if user.tokens >= total_price:
+            user.tokens -= total_price
+            payment_status = "success"
+            booking_status = "paid"
+            paid_at = datetime.utcnow()
+        else:
+            payment_status = "pending"
+            booking_status = "pending"
+            paid_at = None
+
+        # Create Payment
+        payment = Payment(
+            total_price=total_price,
+            status=payment_status,
+            paid_at=paid_at
+        )
+        db.session.add(payment)
+        db.session.flush()
+
+        # Create Booking
+        booking = Booking(
+            user_id=int(user_id),
+            zone_id=zone_id,
+            payment_id=payment.id,
+            quantity=quantity,
+            status=booking_status
+        )
+        db.session.add(booking)
+
+        # Update Zone Capacity
+        zone.capacity -= quantity
+
+        # logs transaction booking and payment
+
+        db.session.commit()
+
+        return jsonify({
+            "message": "Booking created successfully",
+            "booking_id": booking.id,
+            "status": booking_status,
+            "total_price": total_price
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+
 @app.route("/api/user/bookings/<int:booking_id>/cancel", methods=["PUT"])
 @jwt_required()
 def cancel_booking(booking_id):
@@ -229,19 +333,62 @@ def cancel_booking(booking_id):
         user.tokens += payment.total_price
 
         #log_transaction(
-            #user_id=int(user_id),
-            #action="ticket",
-            #details={
-                #"status": "cancel_and_refund",
-                #"booking_id": booking.id,
-                #"amount_refunded": payment.total_price
-            #}
+        #    user_id=int(user_id),
+        #    action="ticket",
+        #    details={
+        #        "status": "cancel_and_refund",
+        #        "booking_id": booking.id,
+        #        "amount_refunded": payment.total_price
+        #    }
         #)
 
         booking.status = "canceled"
         db.session.commit()
 
         return jsonify({"message": "Booking canceled successfully"}), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+
+@app.route("/api/user/bookings/<int:booking_id>/paid", methods=["PUT"])
+@jwt_required()
+def paid_booking(booking_id):
+    user_id = get_jwt_identity()
+    booking = Booking.query.filter_by(id=booking_id, user_id=int(user_id)).first()
+
+    if not booking:
+        return jsonify({"error": "Booking not found"}), 404
+
+    if booking.status != "pending":
+        return jsonify({"error": f"Booking is already {booking.status}"}), 400
+
+    user = User.query.get(user_id)
+    payment = Payment.query.get(booking.payment_id)
+
+    if user.tokens < payment.total_price:
+        return jsonify({"error": "Insufficient tokens"}), 400
+
+    try:
+        user.tokens -= payment.total_price
+
+        booking.status = "paid"
+        payment.status = "success"
+        payment.paid_at = datetime.utcnow()
+
+        # log_transaction(
+        #     user_id=int(user_id),
+        #     action="payment",
+        #     details={
+        #         "status": "success",
+        #         "booking_id": booking.id,
+        #         "amount_paid": payment.total_price
+        #     }
+        # )
+
+        db.session.commit()
+        return jsonify({"message": "Booking paid successfully"}), 200
 
     except Exception as e:
         db.session.rollback()
@@ -285,6 +432,14 @@ def topup():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+
+@app.cli.command("recreate-db")
+def recreate_db_command():
+    """Drops and recreates all database tables."""
+    db.drop_all()
+    db.create_all()
+    print("Database recreated successfully!")
 
 
 if __name__ == "__main__":

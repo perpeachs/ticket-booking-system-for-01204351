@@ -22,44 +22,46 @@ function UserProfilePage() {
   const [originalUsername, setOriginalUsername] = useState("");
   const [originalEmail, setOriginalEmail] = useState("");
 
+  const fetchProfile = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/user/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setUsername(data.username);
+        setEmail(data.email);
+        setOriginalUsername(data.username);
+        setOriginalEmail(data.email);
+      }
+    } catch {
+      setErrorMessage("Failed to load profile");
+    }
+  };
+
   // Load profile from API on mount
   useEffect(() => {
-    async function fetchProfile() {
-      try {
-        const res = await fetch(`${API_BASE}/api/user/profile`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setUsername(data.username);
-          setEmail(data.email);
-          setOriginalUsername(data.username);
-          setOriginalEmail(data.email);
-        }
-      } catch {
-        setErrorMessage("Failed to load profile");
-      }
-    }
     fetchProfile();
   }, [token]);
 
   const [bookedTickets, setBookedTickets] = useState([]);
 
+  const fetchBookedTickets = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/user/bookings`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setBookedTickets(data);
+      }
+    } catch {
+      setErrorMessage("Failed to load booked tickets");
+    }
+  };
+
   // Load booked tickets from API on mount
   useEffect(() => {
-    async function fetchBookedTickets() {
-      try {
-        const res = await fetch(`${API_BASE}/api/user/bookings`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setBookedTickets(data);
-        }
-      } catch {
-        setErrorMessage("Failed to load booked tickets");
-      }
-    }
     fetchBookedTickets();
   }, [token]);
 
@@ -90,6 +92,7 @@ function UserProfilePage() {
         setIsEditingUsername(false);
         setOriginalUsername(username);
         showSuccess("Username updated successfully!");
+        fetchProfile();
       } else {
         showError(data.error || "Failed to update username");
       }
@@ -113,6 +116,7 @@ function UserProfilePage() {
         setIsEditingEmail(false);
         setOriginalEmail(email);
         showSuccess("Email updated successfully!");
+        fetchProfile();
       } else {
         showError(data.error || "Failed to update email");
       }
@@ -163,9 +167,36 @@ function UserProfilePage() {
         const data = await res.json();
         if (res.ok) {
           showSuccess("Ticket canceled successfully!");
+          fetchBookedTickets();
+          fetchProfile();
           window.dispatchEvent(new Event("balanceUpdated"));
         } else {
           showError(data.error || "Failed to cancel ticket");
+        }
+      } catch {
+        showError("Server error");
+      }
+    }
+  };
+
+  const handlePaidTicket = async (ticketId) => {
+    if (window.confirm("Are you sure you want to paid this ticket?")) {
+      try {
+        const res = await fetch(`${API_BASE}/api/user/bookings/${ticketId}/paid`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showSuccess("Ticket paid successfully!");
+          fetchBookedTickets();
+          fetchProfile();
+          window.dispatchEvent(new Event("balanceUpdated"));
+        } else {
+          showError(data.error || "Failed to paid ticket");
         }
       } catch {
         showError("Server error");
@@ -404,6 +435,14 @@ function UserProfilePage() {
                         className="bg-red-500 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-red-600 transition"
                       >
                         Cancel Ticket
+                      </button>
+                    )}
+                    {ticket.status === "pending" && (
+                      <button
+                        onClick={() => handlePaidTicket(ticket.id)}
+                        className="bg-green-500 text-white px-3 py-1 rounded-lg text-sm font-medium hover:bg-green-600 transition"
+                      >
+                        Paid Ticket
                       </button>
                     )}
                   </div>
