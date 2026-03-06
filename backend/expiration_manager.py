@@ -3,17 +3,17 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from extensions import db
 from models import Event, Zone, Booking, Payment
 from transaction_service import log_transaction
+from mongo import transactions_collection
 
 def expire_events():
     now = datetime.utcnow() + timedelta(days=1)
     expired_events = Event.query.filter(
         Event.event_datetime < now,
-        Event.status != "completed"
+        Event.status == "available"
     ).all()
     
     for event in expired_events:
         event.status = "completed"
-        event.expired_at = now
         for zone in event.zones:
             zone.is_available = False
             for booking in zone.bookings:
@@ -70,6 +70,15 @@ def expire_bookings():
         db.session.commit()
         print(f"[{datetime.now()}] Expired {len(expired_bookings)} bookings.")
 
+def cleanup_old_transactions():
+    six_months_ago = datetime.now(timezone.utc) - timedelta(days=180)
+    result = transactions_collection.update_many(
+        {"created_at": {"$lt": six_months_ago}, "is_deleted": False},
+        {"$set": {"is_deleted": True}}
+    )
+    if result.modified_count > 0:
+        print(f"[{datetime.now()}] Auto-expired {result.modified_count} old transactions.")
+
 def start_expiration_scheduler(app):
     scheduler = BackgroundScheduler()
     
@@ -81,8 +90,13 @@ def start_expiration_scheduler(app):
         with app.app_context():
             expire_events()
 
+    def run_cleanup_transactions():
+        with app.app_context():
+            cleanup_old_transactions()
+
     scheduler.add_job(run_expire_bookings, 'interval', minutes=1)
     scheduler.add_job(run_expire_events, 'cron', hour=0, minute=0)
+    scheduler.add_job(run_cleanup_transactions, 'cron', hour=0, minute=0)
     
     scheduler.start()
     return scheduler

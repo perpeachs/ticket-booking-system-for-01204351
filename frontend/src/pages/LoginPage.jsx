@@ -2,6 +2,8 @@ import { useState } from "react";
 import bgImage from "../assets/thumb-1920-1172157.jpeg";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+const API_BASE = "http://127.0.0.1:5000";
+
 function LoginPage({ loginUrl }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -12,7 +14,7 @@ function LoginPage({ loginUrl }) {
     e.preventDefault();
     setErrorMessage("");
     try {
-      const response = await fetch("http://127.0.0.1:5000/api/auth/login", {
+      const response = await fetch(`${API_BASE}/api/auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -31,7 +33,7 @@ function LoginPage({ loginUrl }) {
       // Fetch full profile to get tokens and other data
       try {
         const profileResponse = await fetch(
-          "http://127.0.0.1:5000/api/user/profile",
+          `${API_BASE}/api/user/profile`,
           {
             headers: { Authorization: `Bearer ${data.access_token}` },
           },

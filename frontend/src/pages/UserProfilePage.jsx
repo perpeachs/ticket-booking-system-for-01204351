@@ -400,8 +400,8 @@ function UserProfilePage() {
                 <div
                   key={ticket.id}
                   className={`border rounded-lg p-4 flex items-center justify-between ${ticket.status === "expired"
-                      ? "bg-gray-50 opacity-70"
-                      : "bg-white"
+                    ? "bg-gray-50 opacity-70"
+                    : "bg-white"
                     }`}
                 >
                   <div>
@@ -417,10 +417,10 @@ function UserProfilePage() {
                   <div className="flex items-center gap-3">
                     <span
                       className={`px-3 py-1 rounded-full text-sm font-medium ${ticket.status === "paid"
-                          ? "bg-green-100 text-green-700"
-                          : ticket.status === "pending"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : "bg-gray-200 text-gray-600"
+                        ? "bg-green-100 text-green-700"
+                        : ticket.status === "pending"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-gray-200 text-gray-600"
                         }`}
                     >
                       {ticket.status === "paid"

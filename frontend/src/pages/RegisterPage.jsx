@@ -2,6 +2,8 @@ import { useState } from "react";
 import bgImage from "../assets/thumb-1920-1172157.jpeg";
 import { useNavigate } from "react-router-dom";
 
+const API_BASE = "http://127.0.0.1:5000";
+
 function RegisterPage() {
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -11,44 +13,44 @@ function RegisterPage() {
   const navigate = useNavigate();
 
   function handleRegister(e) {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!/\S+@\S+\.\S+/.test(email)) {
-    setErrorMessage("Invalid email format");
-    return;
-  }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      setErrorMessage("Invalid email format");
+      return;
+    }
 
-  if (password !== confirmPassword) {
-    setErrorMessage("Passwords do not match");
-    return;
-  }
+    if (password !== confirmPassword) {
+      setErrorMessage("Passwords do not match");
+      return;
+    }
 
-  fetch("http://127.0.0.1:5000/register", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      email,
-      username,
-      password,
-    }),
-  })
-    .then(async (res) => {
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.message || "Register failed");
-      }
-
-
-      setErrorMessage("");
-      navigate("/login");
+    fetch(`${API_BASE}/api/auth/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        email,
+        username,
+        password,
+      }),
     })
-    .catch((err) => {
-      setErrorMessage(err.message);
-    });
-}
+      .then(async (res) => {
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.message || "Register failed");
+        }
+
+
+        setErrorMessage("");
+        navigate("/login");
+      })
+      .catch((err) => {
+        setErrorMessage(err.message);
+      });
+  }
 
   return (
     <div

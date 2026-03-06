@@ -6,11 +6,10 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_migrate import Migrate
-from datetime import datetime
 
 from extensions import db, bcrypt
 from models import User, Booking, Zone, Event, Payment
-#from expiration_manager import start_expiration_scheduler
+from expiration_manager import start_expiration_scheduler
 
 from mongo import transactions_collection
 from bson import ObjectId
@@ -32,12 +31,12 @@ migrate = Migrate(app, db)
 
 with app.app_context():
     db.create_all()
-    #start_expiration_scheduler(app)
+    start_expiration_scheduler(app)
 
 # ============ User APIs ============
 
-@app.route("/register", methods=["POST"])
-def register():
+@app.route("/api/auth/register", methods=["POST"])
+function register():
     data = request.get_json()
 
     email = data.get("email")
