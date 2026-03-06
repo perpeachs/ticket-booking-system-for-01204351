@@ -8,3 +8,4 @@ client = MongoClient(MONGO_URI)
 db = client["concert_db"]
 
 transactions_collection = db["transactions"]
+user_stats_collection = db["user_stats"]

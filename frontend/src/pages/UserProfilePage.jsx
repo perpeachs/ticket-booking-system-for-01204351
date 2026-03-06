@@ -17,6 +17,7 @@ function UserProfilePage() {
   const [showPassword, setShowPassword] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [stats, setStats] = useState(null);
 
   // Original values to restore on cancel
   const [originalUsername, setOriginalUsername] = useState("");
@@ -39,9 +40,24 @@ function UserProfilePage() {
     }
   };
 
+  const fetchStats = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/user/stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setStats(data);
+      }
+    } catch {
+      console.error("Failed to load stats");
+    }
+  };
+
   // Load profile from API on mount
   useEffect(() => {
     fetchProfile();
+    fetchStats();
   }, [token]);
 
   const [bookedTickets, setBookedTickets] = useState([]);
@@ -94,6 +110,7 @@ function UserProfilePage() {
         showSuccess("Username updated successfully!");
         window.dispatchEvent(new CustomEvent("profileUpdated"));
         fetchProfile();
+        fetchStats();
       } else {
         showError(data.error || "Failed to update username");
       }
@@ -119,6 +136,7 @@ function UserProfilePage() {
         showSuccess("Email updated successfully!");
         window.dispatchEvent(new CustomEvent("profileUpdated"));
         fetchProfile();
+        fetchStats();
       } else {
         showError(data.error || "Failed to update email");
       }
@@ -171,6 +189,7 @@ function UserProfilePage() {
           showSuccess("Ticket canceled successfully!");
           fetchBookedTickets();
           fetchProfile();
+          fetchStats();
           window.dispatchEvent(new Event("balanceUpdated"));
         } else {
           showError(data.error || "Failed to cancel ticket");
@@ -196,6 +215,7 @@ function UserProfilePage() {
           showSuccess("Ticket paid successfully!");
           fetchBookedTickets();
           fetchProfile();
+          fetchStats();
           window.dispatchEvent(new Event("balanceUpdated"));
         } else {
           showError(data.error || "Failed to paid ticket");
@@ -386,6 +406,47 @@ function UserProfilePage() {
           </div>
         </div>
 
+        {/* Account Statistics */}
+        {stats && (
+          <div className="bg-white shadow-md rounded-xl p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-6 text-gray-700">
+              Account Statistics
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <p className="text-sm text-blue-600 font-medium">Total Top-up</p>
+                <p className="text-2xl font-bold text-blue-800">🪙 {stats.total_topup_amount.toLocaleString()}</p>
+              </div>
+              <div className="bg-green-50 p-4 rounded-lg">
+                <p className="text-sm text-green-600 font-medium">Total Spent</p>
+                <p className="text-2xl font-bold text-green-800">💸 {stats.total_spend_amount.toLocaleString()}</p>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <p className="text-sm text-yellow-600 font-medium">Total Bookings</p>
+                <p className="text-2xl font-bold text-yellow-800">📅 {stats.total_bookings_count}</p>
+              </div>
+              <div className="bg-red-50 p-4 rounded-lg">
+                <p className="text-sm text-red-600 font-medium">Canceled Bookings</p>
+                <p className="text-2xl font-bold text-red-800">❌ {stats.total_canceled_count}</p>
+              </div>
+              <div className="bg-indigo-50 p-4 rounded-lg">
+                <p className="text-sm text-indigo-600 font-medium">Total Refunded</p>
+                <p className="text-2xl font-bold text-indigo-800">💰 {stats.total_refunded_amount.toLocaleString()}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Transaction History Button */}
+        <div className="mb-6">
+          <button
+            onClick={() => navigate("/history")}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition shadow-md"
+          >
+            📜 View Transaction History
+          </button>
+        </div>
+
         {/* Booked Tickets */}
         <div className="bg-white shadow-md rounded-xl p-6 mb-6">
           <h2 className="text-xl font-semibold mb-6 text-gray-700">
@@ -452,15 +513,6 @@ function UserProfilePage() {
           </div>
         </div>
 
-        {/* Transaction History Button */}
-        <div className="bg-white shadow-md rounded-xl p-6">
-          <button
-            onClick={() => navigate("/history")}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
-          >
-            📜 View Transaction History
-          </button>
-        </div>
       </div>
     </div>
   );

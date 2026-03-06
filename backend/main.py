@@ -1,7 +1,6 @@
 import os
+import click
 from datetime import datetime
-from dotenv import load_dotenv
-load_dotenv()
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
@@ -11,7 +10,7 @@ from extensions import db, bcrypt
 from models import User, Booking, Zone, Event, Payment
 from expiration_manager import start_expiration_scheduler
 
-from mongo import transactions_collection
+from mongo import transactions_collection, user_stats_collection
 from bson import ObjectId
 from transaction_service import log_transaction
 app = Flask(__name__)
@@ -65,6 +64,16 @@ def register():
 
         db.session.add(new_user)
         db.session.commit()
+
+        # Initialize User Statistics in MongoDB
+        user_stats_collection.insert_one({
+            "user_id": new_user.id,
+            "total_topup_amount": 0,
+            "total_spend_amount": 0,
+            "total_bookings_count": 0,
+            "total_canceled_count": 0,
+            "total_refunded_amount": 0
+        })
 
         return jsonify({"message": "User registered successfully"}), 201
     except Exception as e:
@@ -756,12 +765,59 @@ def get_transactions():
     return jsonify(transactions)
 
 
+@app.route("/api/user/stats", methods=["GET"])
+@jwt_required()
+def get_user_stats():
+    user_id = int(get_jwt_identity())
+    
+    stats = user_stats_collection.find_one({"user_id": user_id})
+    if not stats:
+        stats = {
+            "total_topup_amount": 0,
+            "total_spend_amount": 0,
+            "total_bookings_count": 0,
+            "total_canceled_count": 0,
+            "total_refunded_amount": 0
+        }
+    else:
+        stats.pop("_id", None)
+        defaults = {
+            "total_topup_amount": 0,
+            "total_spend_amount": 0,
+            "total_bookings_count": 0,
+            "total_canceled_count": 0,
+            "total_refunded_amount": 0
+        }
+        for k, v in defaults.items():
+            if k not in stats:
+                stats[k] = v
+
+    return jsonify(stats)
+
+
 @app.cli.command("recreate-db")
 def recreate_db_command():
     """Drops and recreates all database tables."""
     db.drop_all()
     db.create_all()
     print("Database recreated successfully!")
+
+
+@app.cli.command("delete-user")
+@click.argument("identifier")
+def delete_user(identifier):
+    user = User.query.filter((User.username == identifier) | (User.email == identifier)).first()
+    if not user:
+        print(f"User with identifier '{identifier}' not found.")
+        return
+
+    if user.deleted_at:
+        print(f"User '{user.username}' is already soft-deleted.")
+        return
+
+    user.deleted_at = datetime.utcnow()
+    db.session.commit()
+    print(f"User '{user.username}' has been soft-deleted.")
 
 if __name__ == "__main__":
     app.run(debug=True)
