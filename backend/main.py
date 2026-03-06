@@ -36,7 +36,7 @@ with app.app_context():
 # ============ User APIs ============
 
 @app.route("/api/auth/register", methods=["POST"])
-function register():
+def register():
     data = request.get_json()
 
     email = data.get("email")
