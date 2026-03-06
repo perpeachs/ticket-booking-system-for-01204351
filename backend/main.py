@@ -9,6 +9,9 @@ from flask_migrate import Migrate
 from extensions import db, bcrypt
 from models import User, Booking, Zone, Event, Payment
 
+from mongo import transactions_collection
+from bson import ObjectId
+from transaction_service import log_transaction
 app = Flask(__name__)
 CORS(app)
 
@@ -27,6 +30,12 @@ migrate = Migrate(app, db)
 with app.app_context():
     db.create_all()
 
+@app.cli.command("recreate-db")
+def recreate_db_command():
+    """Drops and recreates all database tables."""
+    db.drop_all()
+    db.create_all()
+    print("Database recreated successfully!")
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -422,6 +431,16 @@ def cancel_booking(booking_id):
         #)
 
         booking.status = "canceled"
+        log_transaction(
+            user_id=int(user_id),
+            action="payment",
+            details={
+                "status": "cancel_and_refund",
+                "booking_id": booking.id,
+                "refunded_tokens": payment.total_price
+            }
+        )
+
         db.session.commit()
 
         return jsonify({"message": "Booking canceled successfully"}), 200
@@ -451,15 +470,15 @@ def topup():
         user.tokens += amount
         db.session.commit()
 
-        # log_transaction(
-        #     user_id=int(user_id),
-        #     action="topup",
-        #     details={
-        #         "amount": amount,
-        #         "new_balance": user.tokens,
-        #         "payment_method": paymentMethod
-        #     }
-        # )
+        log_transaction(
+    user_id=int(user_id),
+    action="topup_token",
+    details={
+        "amount": amount,
+        "payment_method": paymentMethod,
+        "new_balance": user.tokens
+    }
+)
 
         return jsonify({
             "message": "Top-up successful",
@@ -475,6 +494,24 @@ def recreate_db_command():
     db.drop_all()
     db.create_all()
     print("Database recreated successfully!")
+
+@app.route("/transactions", methods=["GET"])
+@jwt_required()
+def get_transactions():
+
+    user_id = int(get_jwt_identity())
+
+    transactions = list(
+        transactions_collection.find(
+            {"user_id": user_id, "is_deleted": False}
+        ).sort("created_at", -1)
+    )
+
+    for t in transactions:
+        t["_id"] = str(t["_id"])
+
+    return jsonify(transactions)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
