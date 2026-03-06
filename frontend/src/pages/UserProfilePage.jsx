@@ -415,23 +415,23 @@ function UserProfilePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-blue-50 p-4 rounded-lg">
                 <p className="text-sm text-blue-600 font-medium">Total Top-up</p>
-                <p className="text-2xl font-bold text-blue-800">🪙 {stats.total_topup_amount.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-blue-800">{stats.total_topup_amount.toLocaleString()}</p>
               </div>
               <div className="bg-green-50 p-4 rounded-lg">
                 <p className="text-sm text-green-600 font-medium">Total Spent</p>
-                <p className="text-2xl font-bold text-green-800">💸 {stats.total_spend_amount.toLocaleString()}</p>
-              </div>
-              <div className="bg-yellow-50 p-4 rounded-lg">
-                <p className="text-sm text-yellow-600 font-medium">Total Bookings</p>
-                <p className="text-2xl font-bold text-yellow-800">📅 {stats.total_bookings_count}</p>
-              </div>
-              <div className="bg-red-50 p-4 rounded-lg">
-                <p className="text-sm text-red-600 font-medium">Canceled Bookings</p>
-                <p className="text-2xl font-bold text-red-800">❌ {stats.total_canceled_count}</p>
+                <p className="text-2xl font-bold text-green-800">{stats.total_spend_amount.toLocaleString()}</p>
               </div>
               <div className="bg-indigo-50 p-4 rounded-lg">
                 <p className="text-sm text-indigo-600 font-medium">Total Refunded</p>
-                <p className="text-2xl font-bold text-indigo-800">💰 {stats.total_refunded_amount.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-indigo-800">{stats.total_refunded_amount.toLocaleString()}</p>
+              </div>
+              <div className="bg-yellow-50 p-4 rounded-lg">
+                <p className="text-sm text-yellow-600 font-medium">Total Bookings</p>
+                <p className="text-2xl font-bold text-yellow-800">{stats.total_bookings_count}</p>
+              </div>
+              <div className="bg-red-50 p-4 rounded-lg">
+                <p className="text-sm text-red-600 font-medium">Canceled Bookings</p>
+                <p className="text-2xl font-bold text-red-800">{stats.total_canceled_count}</p>
               </div>
             </div>
           </div>
