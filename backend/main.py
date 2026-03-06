@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -10,6 +11,9 @@ from extensions import db, bcrypt
 from models import User, Booking, Zone, Event, Payment
 #from expiration_manager import start_expiration_scheduler
 
+from mongo import transactions_collection
+from bson import ObjectId
+from transaction_service import log_transaction
 app = Flask(__name__)
 CORS(app)
 
@@ -27,8 +31,8 @@ migrate = Migrate(app, db)
 
 with app.app_context():
     db.create_all()
-    #start_expiration_scheduler(app)
 
+# ============ User APIs ============
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -81,39 +85,206 @@ def login():
     }), 200
 
 
-# ============ Concerts APIs ============
+# ============ Concerts APIs (Public - for users) ============
 
 @app.route("/api/concerts", methods=["GET"])
 @jwt_required()
 def get_concerts():
-    events = Event.query.all()
+    # Only show published concerts (available or ended) to regular users
+    events = Event.query.filter(Event.status.in_(["available", "ended"])).all()
     result = []
     for event in events:
+        zones = Zone.query.filter_by(event_id=event.id).all()
+        zone_list = []
+        for z in zones:
+            zone_list.append({
+                "id": z.id,
+                "name": z.name,
+                "capacity": z.capacity,
+                "price": z.price,
+                "is_available": z.is_available
+            })
         result.append({
             "id": event.id,
             "name": event.title,
+            "description": event.description,
             "date": event.event_datetime.strftime("%d %B %Y"),
             "location": event.location,
             "image": event.image_url or "https://picsum.photos/400/250?random=" + str(event.id),
-            "status": event.status
+            "status": event.status,
+            "zones": zone_list
         })
     return jsonify(result), 200
 
 
-@app.route("/api/concerts/<int:event_id>/zones", methods=["GET"])
+# ============ Admin Concert Management APIs ============
+
+def admin_required():
+    """Check if the current user is an admin. Returns user or error response."""
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    if not user:
+        return None, (jsonify({"error": "User not found"}), 404)
+    if user.role != "admin":
+        return None, (jsonify({"error": "Admin access required"}), 403)
+    return user, None
+
+
+@app.route("/api/admin/concerts", methods=["POST"])
 @jwt_required()
-def get_zones(event_id):
-    zones = Zone.query.filter_by(event_id=event_id, is_available=True).all()
+def create_concert():
+    user, error = admin_required()
+    if error:
+        return error
+
+    data = request.get_json()
+    title = data.get("title")
+    description = data.get("description", "")
+    location = data.get("location", "")
+    event_datetime_str = data.get("event_datetime")
+    image_url = data.get("image_url", "")
+    zones_data = data.get("zones", [])
+
+    if not title or not event_datetime_str:
+        return jsonify({"error": "Title and event_datetime are required"}), 400
+
+    try:
+        event_datetime = datetime.strptime(event_datetime_str, "%Y-%m-%dT%H:%M")
+    except ValueError:
+        return jsonify({"error": "Invalid datetime format. Use YYYY-MM-DDTHH:MM"}), 400
+
+    try:
+        new_event = Event(
+            title=title,
+            description=description,
+            location=location,
+            event_datetime=event_datetime,
+            status="draft",
+            image_url=image_url
+        )
+        db.session.add(new_event)
+        db.session.flush()  # Get the event ID before committing
+
+        # Add zones if provided
+        for z in zones_data:
+            zone = Zone(
+                event_id=new_event.id,
+                name=z.get("name", "General"),
+                capacity=z.get("capacity", 100),
+                price=z.get("price", 0)
+            )
+            db.session.add(zone)
+
+        db.session.commit()
+        return jsonify({
+            "message": "Concert created as draft",
+            "id": new_event.id
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+
+@app.route("/api/admin/concerts/drafts", methods=["GET"])
+@jwt_required()
+def get_draft_concerts():
+    user, error = admin_required()
+    if error:
+        return error
+
+    events = Event.query.filter_by(status="draft").order_by(Event.created_at.desc()).all()
     result = []
-    for zone in zones:
+    for event in events:
+        zones = Zone.query.filter_by(event_id=event.id).all()
+        zone_list = [{"id": z.id, "name": z.name, "capacity": z.capacity, "price": z.price} for z in zones]
         result.append({
-            "id": zone.id,
-            "name": zone.name,
-            "capacity": zone.capacity,
-            "price": zone.price,
-            "is_available": zone.is_available
+            "id": event.id,
+            "name": event.title,
+            "description": event.description,
+            "date": event.event_datetime.strftime("%d %B %Y"),
+            "event_datetime": event.event_datetime.strftime("%Y-%m-%dT%H:%M"),
+            "location": event.location,
+            "image": event.image_url or "https://picsum.photos/400/250?random=" + str(event.id),
+            "status": event.status,
+            "zones": zone_list,
+            "created_at": event.created_at.isoformat() if event.created_at else None
         })
     return jsonify(result), 200
+
+
+@app.route("/api/admin/concerts/<int:concert_id>/publish", methods=["PUT"])
+@jwt_required()
+def publish_concert(concert_id):
+    user, error = admin_required()
+    if error:
+        return error
+
+    event = Event.query.get(concert_id)
+    if not event:
+        return jsonify({"error": "Concert not found"}), 404
+
+    if event.status != "draft":
+        return jsonify({"error": "Only draft concerts can be published"}), 400
+
+    event.status = "available"
+    db.session.commit()
+
+    return jsonify({"message": "Concert published successfully"}), 200
+
+
+@app.route("/api/admin/concerts/<int:concert_id>", methods=["PUT"])
+@jwt_required()
+def update_concert(concert_id):
+    user, error = admin_required()
+    if error:
+        return error
+
+    event = Event.query.get(concert_id)
+    if not event:
+        return jsonify({"error": "Concert not found"}), 404
+
+    data = request.get_json()
+
+    if data.get("title"):
+        event.title = data["title"]
+    if data.get("description") is not None:
+        event.description = data["description"]
+    if data.get("location"):
+        event.location = data["location"]
+    if data.get("event_datetime"):
+        try:
+            event.event_datetime = datetime.strptime(data["event_datetime"], "%Y-%m-%dT%H:%M")
+        except ValueError:
+            return jsonify({"error": "Invalid datetime format"}), 400
+    if data.get("image_url") is not None:
+        event.image_url = data["image_url"]
+
+    db.session.commit()
+    return jsonify({"message": "Concert updated successfully"}), 200
+
+
+@app.route("/api/admin/concerts/<int:concert_id>", methods=["DELETE"])
+@jwt_required()
+def delete_concert(concert_id):
+    user, error = admin_required()
+    if error:
+        return error
+
+    event = Event.query.get(concert_id)
+    if not event:
+        return jsonify({"error": "Concert not found"}), 404
+
+    # Only allow deleting drafts
+    if event.status != "draft":
+        return jsonify({"error": "Only draft concerts can be deleted"}), 400
+
+    # Delete associated zones first
+    Zone.query.filter_by(event_id=event.id).delete()
+    db.session.delete(event)
+    db.session.commit()
+
+    return jsonify({"message": "Concert deleted successfully"}), 200
+
 
 # ============ User Profile APIs ============
 
@@ -343,6 +514,16 @@ def cancel_booking(booking_id):
         #)
 
         booking.status = "canceled"
+        log_transaction(
+            user_id=int(user_id),
+            action="payment",
+            details={
+                "status": "cancel_and_refund",
+                "booking_id": booking.id,
+                "refunded_tokens": payment.total_price
+            }
+        )
+
         db.session.commit()
 
         return jsonify({"message": "Booking canceled successfully"}), 200
@@ -415,15 +596,15 @@ def topup():
         user.tokens += amount
         db.session.commit()
 
-        # log_transaction(
-        #     user_id=int(user_id),
-        #     action="topup",
-        #     details={
-        #         "amount": amount,
-        #         "new_balance": user.tokens,
-        #         "payment_method": paymentMethod
-        #     }
-        # )
+        log_transaction(
+    user_id=int(user_id),
+    action="topup_token",
+    details={
+        "amount": amount,
+        "payment_method": paymentMethod,
+        "new_balance": user.tokens
+    }
+)
 
         return jsonify({
             "message": "Top-up successful",
@@ -433,6 +614,25 @@ def topup():
         db.session.rollback()
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
+# ============ Transaction History APIs ============
+
+@app.route("/transactions", methods=["GET"])
+@jwt_required()
+def get_transactions():
+
+    user_id = int(get_jwt_identity())
+
+    transactions = list(
+        transactions_collection.find(
+            {"user_id": user_id, "is_deleted": False}
+        ).sort("created_at", -1)
+    )
+
+    for t in transactions:
+        t["_id"] = str(t["_id"])
+
+    return jsonify(transactions)
+
 
 @app.cli.command("recreate-db")
 def recreate_db_command():
@@ -440,7 +640,6 @@ def recreate_db_command():
     db.drop_all()
     db.create_all()
     print("Database recreated successfully!")
-
 
 if __name__ == "__main__":
     app.run(debug=True)

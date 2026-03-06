@@ -30,7 +30,7 @@ function Header() {
     };
 
     fetchBalance();
-    
+
     // Listen for custom event to refresh balance immediately
     const handleBalanceUpdate = () => {
       fetchBalance();
@@ -48,12 +48,11 @@ function Header() {
   }
 
   const navLinkClass = ({ isActive }) =>
-    `px-3 py-2 rounded-md text-sm font-medium transition ${
+    `relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
       isActive
-      ? "text-blue-600 bg-blue-50"
-      : "text-gray-700 hover:text-blue-600 hover:bg-gray-100"
+        ? "text-blue-600 bg-blue-50"
+        : "text-gray-700 hover:text-blue-600 hover:bg-gray-100"
     }`;
-
   return (
     <header className="bg-green-200 shadow-md">
       <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
@@ -63,7 +62,7 @@ function Header() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex gap-2">
+        <nav className="flex gap-2 items-center">
           <NavLink to="/home" className={navLinkClass}>
             <span className="text-lg font-semibold">Home</span>
           </NavLink>
@@ -75,14 +74,25 @@ function Header() {
           <NavLink to="/about" className={navLinkClass}>
             <span className="text-lg font-semibold">About</span>
           </NavLink>
+
+          {/* Admin links */}
+          {user?.role === "admin" && (
+            <>
+              <span className="text-gray-400 mx-1">|</span>
+              <NavLink to="/admin/add-concert" className={navLinkClass}>
+                <span className="text-lg font-semibold">➕ Add</span>
+              </NavLink>
+              <NavLink to="/admin/drafts" className={navLinkClass}>
+                <span className="text-lg font-semibold">📋 Drafts</span>
+              </NavLink>
+            </>
+          )}
         </nav>
 
         {/* Profile + Logout */}
         <div className="flex items-center gap-3">
-          {/* Token Balance */}
-          <NavLink
-            to="/top-up"
-          >
+          {/* Token Balance (mock data) */}
+          <NavLink to="/top-up">
             <span className="text-lg">🪙</span>
             <span className="text-sm font-semibold text-yellow-700">
               {balance.toLocaleString()}

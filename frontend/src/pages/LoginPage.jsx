@@ -2,45 +2,54 @@ import { useState } from "react";
 import bgImage from "../assets/thumb-1920-1172157.jpeg";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-
 function LoginPage({ loginUrl }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
   const { login } = useAuth();
-
   async function handleLogin(e) {
-  e.preventDefault();
-  setErrorMessage("");
-
-  try {
-    const response = await fetch("http://127.0.0.1:5000/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        username: username,
-        password: password
-      })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      setErrorMessage(data.error || "Login failed");
-      return;
+    e.preventDefault();
+    setErrorMessage("");
+    try {
+      const response = await fetch("http://127.0.0.1:5000/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: username,
+          password: password,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setErrorMessage(data.error || "Login failed");
+        return;
+      }
+      localStorage.setItem("token", data.access_token);
+      // Fetch full profile to get tokens and other data
+      try {
+        const profileResponse = await fetch(
+          "http://127.0.0.1:5000/api/user/profile",
+          {
+            headers: { Authorization: `Bearer ${data.access_token}` },
+          },
+        );
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+          login(profileData);
+        } else {
+          login({ username }); // Fallback
+        }
+      } catch {
+        login({ username }); // Fallback
+      }
+      navigate("/home");
+    } catch (error) {
+      setErrorMessage("Server error");
     }
-
-    localStorage.setItem("token", data.access_token);
-    login({ username });
-    navigate("/home");
-  } catch (error) {
-    setErrorMessage("Server error");
   }
-}
-
   return (
     <div
       style={{
@@ -69,10 +78,12 @@ function LoginPage({ loginUrl }) {
           color: "white",
         }}
       >
-        <h2>Login</h2>
-
+        <h2
+          style={{ fontSize: "24px", fontWeight: "bold", paddingBottom: "8px" }}
+        >
+          Login
+        </h2>
         {errorMessage && <p style={{ color: "red" }}>{errorMessage}</p>}
-
         <label style={{ marginTop: "10px" }}>Username</label>
         <input
           type="text"
@@ -89,7 +100,6 @@ function LoginPage({ loginUrl }) {
             outline: "none",
           }}
         />
-
         <label style={{ marginTop: "10px" }}>Password</label>
         <input
           type="password"
@@ -106,13 +116,19 @@ function LoginPage({ loginUrl }) {
             outline: "none",
           }}
         />
-
         <button
           type="submit"
           style={{
             marginTop: "15px",
+            width: "100%",
             padding: "10px",
             cursor: "pointer",
+            borderRadius: "24px",
+            backgroundColor: "rgba(255,255,255,0.15)",
+            border: "0.5px solid rgba(255,255,255,0.6)",
+            transition: "all 0.3s ease-in-out",
+            color: "white",
+            outline: "none",
           }}
         >
           Login
@@ -134,5 +150,4 @@ function LoginPage({ loginUrl }) {
     </div>
   );
 }
-
 export default LoginPage;

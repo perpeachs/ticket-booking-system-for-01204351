@@ -1,105 +1,40 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 function TransactionHistory() {
     const navigate = useNavigate();
 
     // Mock data (จะเปลี่ยนเป็น data จาก MongoDB API ภายหลัง)
-    const transactions = [
-        {
-            _id: "txn001",
-            user_id: 5,
-            action: "topup_token",
-            details: {
-                amount: 1000.00,
-                payment_method: "Credit Card",
-            },
-            created_at: "2026-03-01T10:00:00Z",
-            is_deleted: false,
-        },
-        {
-            _id: "txn002",
-            user_id: 5,
-            action: "ticket",
-            details: {
-                booking_id: 1055,
-                payment_id: 501,
-                event_name: "Arctic Monkeys Live in Bangkok",
-                zone_name: "VIP",
-                quantity: 2,
-                price: 5000.00,
-                status: "expired",
-            },
-            created_at: "2026-03-05T14:30:00Z",
-            is_deleted: false,
-        },
+    const [transactions, setTransactions] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-        {
-            _id: "txn002",
-            user_id: 5,
-            action: "ticket",
-            details: {
-                booking_id: 1055,
-                payment_id: 501,
-                event_name: "Arctic Monkeys Live in Bangkok",
-                zone_name: "VIP",
-                quantity: 2,
-                price: 5000.00,
-                status: "booking",
-            },
-            created_at: "2026-03-05T14:30:00Z",
-            is_deleted: false,
-        },
-        {
-            _id: "txn003",
-            user_id: 5,
-            action: "payment",
-            details: {
-                payment_id: 501,
-                booking_id: 1055,
-                event_name: "Arctic Monkeys Live in Bangkok",
-                zone_name: "VIP",
-                quantity: 2,
-                amount_paid: 5000.00,
-                status: "success",
-            },
-            created_at: "2026-03-01T10:00:00Z",
-            is_deleted: false,
-        },
-        {
-            _id: "txn004",
-            user_id: 5,
-            action: "payment",
-            details: {
-                payment_id: 502,
-                booking_id: 1056,
-                event_name: "Coldplay Music of the Spheres",
-                zone_name: "VIP",
-                quantity: 2,
-                amount_paid: 5000.00,
-                status: "failed",
-            },
-            created_at: "2026-03-01T10:05:00Z",
-            is_deleted: false,
-        },
-        {
-            _id: "txn005",
-            user_id: 5,
-            action: "payment",
-            details: {
-                payment_id: 501,
-                booking_id: 1055,
-                event_name: "Arctic Monkeys Live in Bangkok",
-                zone_name: "VIP",
-                quantity: 2,
-                refunded_tokens: 5000.00,
-                status: "cancel_and_refund",
-                reason: "ผู้ใช้ยกเลิกรายการ",
-            },
-            created_at: "2026-03-07T09:15:00Z",
-            is_deleted: false,
-        },
-    ];
+    useEffect(() => {
+
+    const fetchTransactions = async () => {
+        try {
+
+            const token = localStorage.getItem("token");
+
+            const res = await fetch("http://127.0.0.1:5000/transactions", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            const data = await res.json();
+
+            setTransactions(data);
+
+        } catch (err) {
+            console.error("Error fetching transactions:", err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    fetchTransactions();
+
+}, []);
 
     const getActionStyle = (action, details) => {
         switch (action) {

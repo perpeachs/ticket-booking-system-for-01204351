@@ -6,6 +6,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import Header from "./components/Header";
+import Footer from "./components/Footer";
 import HomePage from "./pages/HomePage";
 import ConcertPage from "./pages/ConcertPage";
 import AboutPage from "./pages/AboutPage";
@@ -15,6 +16,8 @@ import RegisterPage from "./pages/RegisterPage";
 import BookingPage from "./pages/BookingPage";
 import TransactionHistory from "./pages/TransactionHistory";
 import TopUpTokens from "./pages/TopUpTokens";
+import AddConcertPage from "./pages/AddConcertPage";
+import DraftConcertPage from "./pages/DraftConcertPage";
 import { useAuth } from "./context/AuthContext";
 
 const TODOLIST_LOGIN_URL = "http://localhost:5000/api/auth/login";
@@ -28,17 +31,29 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+// Admin-only route - requires login + admin role
+function AdminRoute({ children }) {
+  const { user } = useAuth();
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  if (user.role !== "admin") {
+    return <Navigate to="/home" replace />;
+  }
+  return children;
+}
+
 function Layout({ children }) {
   const location = useLocation();
-  // ซ่อน header ในหน้า login
-  const hideHeader =
+  const hideChrome =
     location.pathname === "/login" || location.pathname === "/register";
 
   return (
-    <>
-      {!hideHeader && <Header />}
-      {children}
-    </>
+    <div className="flex flex-col min-h-screen">
+      {!hideChrome && <Header />}
+      <main className="flex-1">{children}</main>
+      {!hideChrome && <Footer />}
+    </div>
   );
 }
 
@@ -55,10 +70,7 @@ function App() {
             path="/login"
             element={<LoginPage loginUrl={TODOLIST_LOGIN_URL} />}
           />
-          <Route
-          path="/register"
-          element={<RegisterPage />}
-          />
+          <Route path="/register" element={<RegisterPage />} />
 
           {/* Protected routes - require login */}
           <Route
@@ -115,6 +127,24 @@ function App() {
               <ProtectedRoute>
                 <TopUpTokens />
               </ProtectedRoute>
+            }
+          />
+
+          {/* Admin routes */}
+          <Route
+            path="/admin/add-concert"
+            element={
+              <AdminRoute>
+                <AddConcertPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/drafts"
+            element={
+              <AdminRoute>
+                <DraftConcertPage />
+              </AdminRoute>
             }
           />
         </Routes>

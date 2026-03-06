@@ -384,6 +384,17 @@ function UserProfilePage() {
           </div>
         </div>
 
+        {/* Transaction History Button */}
+        <div className="bg-white shadow-md rounded-xl p-6 mb-6 border border-gray-200">
+          <button
+            onClick={() => navigate("/history")}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+          >
+            📜 View Transaction History
+          </button>
+        </div>
+
+
         {/* Booked Tickets */}
         <div className="bg-white shadow-md rounded-xl p-6 mb-6">
           <h2 className="text-xl font-semibold mb-6 text-gray-700">
@@ -450,16 +461,6 @@ function UserProfilePage() {
               ))
             )}
           </div>
-        </div>
-
-        {/* Transaction History Button */}
-        <div className="bg-white shadow-md rounded-xl p-6">
-          <button
-            onClick={() => navigate("/history")}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
-          >
-            📜 View Transaction History
-          </button>
         </div>
       </div>
     </div>

@@ -4,7 +4,6 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    // Check localStorage for existing session
     const saved = localStorage.getItem("user");
     return saved ? JSON.parse(saved) : null;
   });
