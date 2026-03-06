@@ -38,26 +38,38 @@ with app.app_context():
 @app.route("/api/auth/register", methods=["POST"])
 def register():
     data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
 
     email = data.get("email")
     username = data.get("username")
     password = data.get("password")
 
-    if User.query.filter_by(username=username).first():
-        return jsonify({"message": "Username already exists"}), 400
+    if not email or not username or not password:
+        return jsonify({"error": "Missing required fields"}), 400
 
-    hashed_pw = bcrypt.generate_password_hash(password).decode("utf-8")
+    try:
+        if User.query.filter_by(username=username).first():
+            return jsonify({"error": "Username already exists"}), 400
+        
+        if User.query.filter_by(email=email).first():
+            return jsonify({"error": "Email already exists"}), 400
 
-    new_user = User(
-    email=email,
-    username=username,
-    password_hash=hashed_pw
-    )
+        hashed_pw = bcrypt.generate_password_hash(password).decode("utf-8")
 
-    db.session.add(new_user)
-    db.session.commit()
+        new_user = User(
+            email=email,
+            username=username,
+            password_hash=hashed_pw
+        )
 
-    return jsonify({"message": "User registered successfully"}), 201
+        db.session.add(new_user)
+        db.session.commit()
+
+        return jsonify({"message": "User registered successfully"}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Database error: {str(e)}"}), 500
 
 
 @app.route("/api/auth/login", methods=["POST"])
