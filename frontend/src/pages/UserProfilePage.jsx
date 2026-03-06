@@ -92,6 +92,7 @@ function UserProfilePage() {
         setIsEditingUsername(false);
         setOriginalUsername(username);
         showSuccess("Username updated successfully!");
+        window.dispatchEvent(new CustomEvent("profileUpdated"));
         fetchProfile();
       } else {
         showError(data.error || "Failed to update username");
@@ -116,6 +117,7 @@ function UserProfilePage() {
         setIsEditingEmail(false);
         setOriginalEmail(email);
         showSuccess("Email updated successfully!");
+        window.dispatchEvent(new CustomEvent("profileUpdated"));
         fetchProfile();
       } else {
         showError(data.error || "Failed to update email");
@@ -384,17 +386,6 @@ function UserProfilePage() {
           </div>
         </div>
 
-        {/* Transaction History Button */}
-        <div className="bg-white shadow-md rounded-xl p-6 mb-6 border border-gray-200">
-          <button
-            onClick={() => navigate("/history")}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
-          >
-            📜 View Transaction History
-          </button>
-        </div>
-
-
         {/* Booked Tickets */}
         <div className="bg-white shadow-md rounded-xl p-6 mb-6">
           <h2 className="text-xl font-semibold mb-6 text-gray-700">
@@ -408,8 +399,7 @@ function UserProfilePage() {
               bookedTickets.map((ticket) => (
                 <div
                   key={ticket.id}
-                  className={`border rounded-lg p-4 flex items-center justify-between ${
-                    ticket.status === "expired"
+                  className={`border rounded-lg p-4 flex items-center justify-between ${ticket.status === "expired"
                       ? "bg-gray-50 opacity-70"
                       : "bg-white"
                     }`}
@@ -426,8 +416,7 @@ function UserProfilePage() {
                   </div>
                   <div className="flex items-center gap-3">
                     <span
-                      className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        ticket.status === "paid"
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${ticket.status === "paid"
                           ? "bg-green-100 text-green-700"
                           : ticket.status === "pending"
                             ? "bg-yellow-100 text-yellow-700"
@@ -461,6 +450,16 @@ function UserProfilePage() {
               ))
             )}
           </div>
+        </div>
+
+        {/* Transaction History Button */}
+        <div className="bg-white shadow-md rounded-xl p-6">
+          <button
+            onClick={() => navigate("/history")}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
+          >
+            📜 View Transaction History
+          </button>
         </div>
       </div>
     </div>

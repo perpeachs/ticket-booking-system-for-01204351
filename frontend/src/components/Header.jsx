@@ -11,9 +11,10 @@ function Header() {
   const token = localStorage.getItem("token");
 
   const [balance, setBalance] = useState(0);
+  const [displayName, setDisplayName] = useState(user?.username || "Profile");
 
   useEffect(() => {
-    const fetchBalance = async () => {
+    const fetchProfileData = async () => {
       try {
         const response = await fetch(`${API_BASE}/api/user/profile`, {
           headers: {
@@ -23,22 +24,25 @@ function Header() {
         const data = await response.json();
         if (response.ok) {
           setBalance(data.tokens);
+          setDisplayName(data.username);
         }
       } catch (err) {
-        console.error("Failed to fetch balance in header:", err);
+        console.error("Failed to fetch profile data in header:", err);
       }
     };
 
-    fetchBalance();
+    fetchProfileData();
 
-    // Listen for custom event to refresh balance immediately
-    const handleBalanceUpdate = () => {
-      fetchBalance();
+    // Listen for custom event to refresh profile immediately
+    const handleProfileUpdate = () => {
+      fetchProfileData();
     };
-    window.addEventListener("balanceUpdated", handleBalanceUpdate);
+    window.addEventListener("balanceUpdated", handleProfileUpdate);
+    window.addEventListener("profileUpdated", handleProfileUpdate);
 
     return () => {
-      window.removeEventListener("balanceUpdated", handleBalanceUpdate);
+      window.removeEventListener("balanceUpdated", handleProfileUpdate);
+      window.removeEventListener("profileUpdated", handleProfileUpdate);
     };
   }, [token]);
 
@@ -48,10 +52,9 @@ function Header() {
   }
 
   const navLinkClass = ({ isActive }) =>
-    `relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-      isActive
-        ? "text-blue-600 bg-blue-50"
-        : "text-gray-700 hover:text-blue-600 hover:bg-gray-100"
+    `relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${isActive
+      ? "text-blue-600 bg-blue-50"
+      : "text-gray-700 hover:text-blue-600 hover:bg-gray-100"
     }`;
   return (
     <header className="bg-green-200 shadow-md">
@@ -108,7 +111,7 @@ function Header() {
             <div className="w-3 h-3 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold"></div>
 
             <span className="text-sm font-medium text-gray-700">
-              {user?.username || "Profile"}
+              {displayName}
             </span>
           </NavLink>
 

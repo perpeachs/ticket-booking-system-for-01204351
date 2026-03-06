@@ -1,40 +1,41 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const API_BASE = "http://127.0.0.1:5000";
+
 function TransactionHistory() {
     const navigate = useNavigate();
 
-    // Mock data (จะเปลี่ยนเป็น data จาก MongoDB API ภายหลัง)
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
 
-    const fetchTransactions = async () => {
-        try {
+        const fetchTransactions = async () => {
+            try {
 
-            const token = localStorage.getItem("token");
+                const token = localStorage.getItem("token");
 
-            const res = await fetch("http://127.0.0.1:5000/transactions", {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+                const res = await fetch(`${API_BASE}/api/transactions`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
 
-            const data = await res.json();
+                const data = await res.json();
 
-            setTransactions(data);
+                setTransactions(data);
 
-        } catch (err) {
-            console.error("Error fetching transactions:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
+            } catch (err) {
+                console.error("Error fetching transactions:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    fetchTransactions();
+        fetchTransactions();
 
-}, []);
+    }, []);
 
     const getActionStyle = (action, details) => {
         switch (action) {
@@ -69,46 +70,41 @@ function TransactionHistory() {
         });
     };
 
-    const getBookingStatusColor = (status) => {
-        switch (status) {
-            case "booking":
-                return "text-blue-600";
-            case "paid":
-                return "text-green-600";
-            case "pending":
-                return "text-yellow-600";
-            case "expired":
-                return "text-red-600";
-            default:
-                return "text-gray-600";
-        }
-    };
-
     const renderDetails = (action, details) => {
         switch (action) {
             case "topup_token":
                 return (
                     <>
                         <p className="text-gray-600">
-                            🪙 Amount: <span className="font-semibold text-blue-600">+{details.amount} Tokens</span>
+                            🪙 Amount: <span className="font-semibold text-blue-600">+{(details?.amount || 0).toLocaleString()} Tokens</span>
                         </p>
                         <p className="text-gray-600">
-                            💳 Payment Method: {details.payment_method}
+                            💳 Payment Method: {details?.payment_method || "Unknown"}
                         </p>
+                        {details?.new_balance !== undefined && (
+                            <p className="text-sm font-medium text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                                💰 New Balance: {details.new_balance.toLocaleString()} Tokens
+                            </p>
+                        )}
                     </>
                 );
             case "ticket":
                 return (
                     <>
                         <p className="text-gray-600">
-                            🎪 Event: <span className="font-semibold">{details.event_name}</span>
+                            🎪 Event: <span className="font-semibold">{details?.event_name || "Unknown Event"}</span>
                         </p>
                         <p className="text-gray-600">
-                            📍 Zone: {details.zone_name} &nbsp; | &nbsp; 🎟️ Quantity: {details.quantity}
+                            📍 Zone: {details?.zone_name || "Unknown"} &nbsp; | &nbsp; 🎟️ Quantity: {details?.quantity || 0}
                         </p>
                         <p className="text-gray-600">
-                            🪙 Price: {details.price.toFixed(2)} THB
+                            🪙 Price: {(details?.total_price || 0).toFixed(2)} THB
                         </p>
+                        {details?.new_balance !== undefined && (
+                            <p className="text-sm font-medium text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                                💰 New Balance: {details.new_balance.toLocaleString()} Tokens
+                            </p>
+                        )}
                     </>
                 );
             case "payment":
@@ -116,14 +112,19 @@ function TransactionHistory() {
                     return (
                         <>
                             <p className="text-gray-600">
-                                🎪 Event: <span className="font-semibold">{details.event_name}</span>
+                                🎪 Event: <span className="font-semibold">{details?.event_name || "Unknown Event"}</span>
                             </p>
                             <p className="text-gray-600">
-                                📍 Zone: {details.zone_name} &nbsp; | &nbsp; 🎟️ Quantity: {details.quantity}
+                                📍 Zone: {details?.zone_name || "Unknown"} &nbsp; | &nbsp; 🎟️ Quantity: {details?.quantity || 0}
                             </p>
                             <p className="text-gray-600">
-                                🪙 Amount Paid: <span className="font-semibold text-green-600">{details.amount_paid.toFixed(2)} THB</span>
+                                🪙 Amount Paid: <span className="font-semibold text-green-600">{(details?.amount_paid || 0).toFixed(2)} THB</span>
                             </p>
+                            {details?.new_balance !== undefined && (
+                                <p className="text-sm font-medium text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                                    💰 New Balance: {details.new_balance.toLocaleString()} Tokens
+                                </p>
+                            )}
                         </>
                     );
                 }
@@ -131,17 +132,22 @@ function TransactionHistory() {
                     return (
                         <>
                             <p className="text-gray-600">
-                                🎪 Event: <span className="font-semibold">{details.event_name}</span>
+                                🎪 Event: <span className="font-semibold">{details?.event_name || "Unknown Event"}</span>
                             </p>
                             <p className="text-gray-600">
-                                📍 Zone: {details.zone_name} &nbsp; | &nbsp; 🎟️ Quantity: {details.quantity}
+                                📍 Zone: {details?.zone_name || "Unknown"} &nbsp; | &nbsp; 🎟️ Quantity: {details?.quantity || 0}
                             </p>
                             <p className="text-gray-600">
-                                🪙 Refunded: <span className="font-semibold text-green-600">+{details.refunded_tokens.toFixed(2)} THB</span>
+                                🪙 Refunded: <span className="font-semibold text-green-600">+{(details?.refunded_tokens || 0).toFixed(2)} THB</span>
                             </p>
-                            {details.reason && (
+                            {details?.reason && (
                                 <p className="text-gray-500 text-sm">
                                     📝 Reason: {details.reason}
+                                </p>
+                            )}
+                            {details?.new_balance !== undefined && (
+                                <p className="text-sm font-medium text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                                    💰 New Balance: {details.new_balance.toLocaleString()} Tokens
                                 </p>
                             )}
                         </>
@@ -151,14 +157,19 @@ function TransactionHistory() {
                 return (
                     <>
                         <p className="text-gray-600">
-                            🎪 Event: <span className="font-semibold">{details.event_name}</span>
+                            🎪 Event: <span className="font-semibold">{details?.event_name || "Unknown Event"}</span>
                         </p>
                         <p className="text-gray-600">
-                            📍 Zone: {details.zone_name} &nbsp; | &nbsp; 🎟️ Quantity: {details.quantity}
+                            📍 Zone: {details?.zone_name || "Unknown"} &nbsp; | &nbsp; 🎟️ Quantity: {details?.quantity || 0}
                         </p>
                         <p className="text-gray-600">
-                            🪙 Attempted: <span className="font-semibold text-red-600">{details.amount_paid.toFixed(2)} THB</span>
+                            🪙 Attempted: <span className="font-semibold text-red-600">{(details?.amount_paid || 0).toFixed(2)} THB</span>
                         </p>
+                        {details?.new_balance !== undefined && (
+                            <p className="text-sm font-medium text-gray-500 mt-2 pt-2 border-t border-gray-100">
+                                💰 New Balance: {details.new_balance.toLocaleString()} Tokens
+                            </p>
+                        )}
                     </>
                 );
             default:

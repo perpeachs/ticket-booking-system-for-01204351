@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 from dotenv import load_dotenv
+load_dotenv()
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
@@ -31,6 +32,7 @@ migrate = Migrate(app, db)
 
 with app.app_context():
     db.create_all()
+    #start_expiration_scheduler(app)
 
 # ============ User APIs ============
 
@@ -113,6 +115,52 @@ def get_concerts():
             "image": event.image_url or "https://picsum.photos/400/250?random=" + str(event.id),
             "status": event.status,
             "zones": zone_list
+        })
+    return jsonify(result), 200
+
+
+@app.route("/api/concerts/<int:concert_id>", methods=["GET"])
+@jwt_required()
+def get_concert(concert_id):
+    event = Event.query.get(concert_id)
+    if not event:
+        return jsonify({"error": "Concert not found"}), 404
+    
+    zones = Zone.query.filter_by(event_id=event.id).all()
+    zone_list = []
+    for z in zones:
+        zone_list.append({
+            "id": z.id,
+            "name": z.name,
+            "capacity": z.capacity,
+            "price": z.price,
+            "is_available": z.is_available
+        })
+        
+    return jsonify({
+        "id": event.id,
+        "name": event.title,
+        "description": event.description,
+        "date": event.event_datetime.strftime("%d %B %Y"),
+        "location": event.location,
+        "image": event.image_url or "https://picsum.photos/400/250?random=" + str(event.id),
+        "status": event.status,
+        "zones": zone_list
+    }), 200
+
+
+@app.route("/api/concerts/<int:concert_id>/zones", methods=["GET"])
+@jwt_required()
+def get_zones(concert_id):
+    zones = Zone.query.filter_by(event_id=concert_id, is_available=True).all()
+    result = []
+    for zone in zones:
+        result.append({
+            "id": zone.id,
+            "name": zone.name,
+            "capacity": zone.capacity,
+            "price": zone.price,
+            "is_available": zone.is_available
         })
     return jsonify(result), 200
 
@@ -458,11 +506,34 @@ def create_booking():
             status=booking_status
         )
         db.session.add(booking)
+        db.session.flush()
 
         # Update Zone Capacity
         zone.capacity -= quantity
 
-        # logs transaction booking and payment
+        # Log Ticket Transaction
+        log_transaction(
+            user_id=int(user_id),
+            action="ticket",
+            details={
+                "status": booking_status,
+                "booking_id": booking.id,
+                "total_price": total_price
+            }
+        )
+
+        # Log Payment Transaction if paid immediately
+        if booking_status == "paid":
+            log_transaction(
+                user_id=int(user_id),
+                action="payment",
+                details={
+                    "status": "success",
+                    "booking_id": booking.id,
+                    "amount_paid": total_price,
+                    "new_balance": user.tokens
+                }
+            )
 
         db.session.commit()
 
@@ -503,16 +574,6 @@ def cancel_booking(booking_id):
         user = User.query.get(booking.user_id)
         user.tokens += payment.total_price
 
-        #log_transaction(
-        #    user_id=int(user_id),
-        #    action="ticket",
-        #    details={
-        #        "status": "cancel_and_refund",
-        #        "booking_id": booking.id,
-        #        "amount_refunded": payment.total_price
-        #    }
-        #)
-
         booking.status = "canceled"
         log_transaction(
             user_id=int(user_id),
@@ -520,7 +581,8 @@ def cancel_booking(booking_id):
             details={
                 "status": "cancel_and_refund",
                 "booking_id": booking.id,
-                "refunded_tokens": payment.total_price
+                "refunded_tokens": payment.total_price,
+                "new_balance": user.tokens
             }
         )
 
@@ -558,15 +620,16 @@ def paid_booking(booking_id):
         payment.status = "success"
         payment.paid_at = datetime.utcnow()
 
-        # log_transaction(
-        #     user_id=int(user_id),
-        #     action="payment",
-        #     details={
-        #         "status": "success",
-        #         "booking_id": booking.id,
-        #         "amount_paid": payment.total_price
-        #     }
-        # )
+        log_transaction(
+            user_id=int(user_id),
+            action="payment",
+            details={
+                "status": "success",
+                "booking_id": booking.id,
+                "amount_paid": payment.total_price,
+                "new_balance": user.tokens
+            }
+        )
 
         db.session.commit()
         return jsonify({"message": "Booking paid successfully"}), 200
@@ -597,14 +660,14 @@ def topup():
         db.session.commit()
 
         log_transaction(
-    user_id=int(user_id),
-    action="topup_token",
-    details={
-        "amount": amount,
-        "payment_method": paymentMethod,
-        "new_balance": user.tokens
-    }
-)
+            user_id=int(user_id),
+            action="topup_token",
+            details={
+                "amount": amount,
+                "payment_method": paymentMethod,
+                "new_balance": user.tokens
+            }
+        )
 
         return jsonify({
             "message": "Top-up successful",
@@ -616,10 +679,9 @@ def topup():
 
 # ============ Transaction History APIs ============
 
-@app.route("/transactions", methods=["GET"])
+@app.route("/api/transactions", methods=["GET"])
 @jwt_required()
 def get_transactions():
-
     user_id = int(get_jwt_identity())
 
     transactions = list(
@@ -630,6 +692,55 @@ def get_transactions():
 
     for t in transactions:
         t["_id"] = str(t["_id"])
+        
+        # Query SQL database for additional metadata if booking_id is present
+        details = t.get("details") or {}
+        booking_id = details.get("booking_id")
+        
+        if booking_id:
+            try:
+                booking = Booking.query.get(booking_id)
+                if booking:
+                    zone = Zone.query.get(booking.zone_id)
+                    event = Event.query.get(zone.event_id) if zone else None
+                    
+                    if event:
+                        details["event_name"] = details.get("event_name", event.title)
+                    if zone:
+                        details["zone_name"] = details.get("zone_name", zone.name)
+                    
+                    details["quantity"] = details.get("quantity", booking.quantity)
+                    
+                    # Ensure field name consistency for the frontend
+                    if t["action"] == "ticket":
+                        details["total_price"] = float(details.get("total_price", 0) or 0)
+                    elif t["action"] == "payment":
+                        status = details.get("status")
+                        if status in ["success", "failed"]:
+                            if "amount_paid" not in details or details["amount_paid"] is None:
+                                payment = Payment.query.get(booking.payment_id)
+                                details["amount_paid"] = float(payment.total_price if payment else 0)
+                            else:
+                                details["amount_paid"] = float(details["amount_paid"])
+                        elif status == "cancel_and_refund":
+                            if "refunded_tokens" not in details or details["refunded_tokens"] is None:
+                                payment = Payment.query.get(booking.payment_id)
+                                details["refunded_tokens"] = float(payment.total_price if payment else 0)
+                            else:
+                                details["refunded_tokens"] = float(details["refunded_tokens"])
+            except Exception as e:
+                print(f"Error looking up metadata for transaction {t['_id']}: {str(e)}")
+        
+        # Final safety defaults for numeric fields to prevent frontend crash
+        if t["action"] == "ticket":
+            details["total_price"] = float(details.get("total_price", 0) or 0)
+        elif t["action"] == "payment":
+            details["amount_paid"] = float(details.get("amount_paid", 0) or 0)
+            details["refunded_tokens"] = float(details.get("refunded_tokens", 0) or 0)
+        elif t["action"] == "topup_token":
+            details["amount"] = float(details.get("amount", 0) or 0)
+
+        t["details"] = details
 
     return jsonify(transactions)
 

@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 from apscheduler.schedulers.background import BackgroundScheduler
 from extensions import db
 from models import Event, Zone, Booking, Payment
+from transaction_service import log_transaction
 
 def expire_events():
     now = datetime.utcnow() + timedelta(days=1)
@@ -18,6 +19,16 @@ def expire_events():
             for booking in zone.bookings:
                 if booking.status == "pending":
                     booking.status = "expired"
+                    # Log ticket expiration
+                    log_transaction(
+                        user_id=int(booking.user_id),
+                        action="ticket",
+                        details={
+                            "status": "expired",
+                            "booking_id": booking.id,
+                            "total_price": float(Payment.query.get(booking.payment_id).total_price)
+                        }
+                    )
             
     if expired_events:
         db.session.commit()
@@ -43,7 +54,18 @@ def expire_bookings():
             payment = Payment.query.get(booking.payment_id)
             if payment and payment.status == "pending":
                 payment.status = "failed"
-                # log_transaction()
+                
+                # Log transaction for expiration
+                log_transaction(
+                    user_id=int(booking.user_id),
+                    action="payment",
+                    details={
+                        "status": "failed",
+                        "reason": "Payment timeout (15 mins)",
+                        "booking_id": booking.id,
+                        "amount_paid": float(payment.total_price),
+                    }
+                )
     if expired_bookings:
         db.session.commit()
         print(f"[{datetime.now()}] Expired {len(expired_bookings)} bookings.")
