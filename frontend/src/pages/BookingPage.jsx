@@ -16,6 +16,7 @@ function BookingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,7 +62,7 @@ function BookingPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           zone_id: selectedZone.id,
@@ -75,7 +76,9 @@ function BookingPage() {
         if (data.status === "paid") {
           alert("Booking successful! Payment completed.");
         } else {
-          alert("Booking created! Status is pending. Please check your tokens or history.");
+          alert(
+            "Booking created! Status is pending. Please check your tokens or history.",
+          );
         }
         // Emit custom event to refresh balance/profile in header
         window.dispatchEvent(new CustomEvent("profileUpdated"));
@@ -108,7 +111,9 @@ function BookingPage() {
           {/* Header Section */}
           <div className="bg-gradient-to-r from-blue-600 to-indigo-700 px-8 py-10 text-white">
             <h1 className="text-4xl font-extrabold mb-2">Book Your Tickets</h1>
-            <p className="text-blue-100 text-lg opacity-90">Secure your spot for an unforgettable experience</p>
+            <p className="text-blue-100 text-lg opacity-90">
+              Secure your spot for an unforgettable experience
+            </p>
           </div>
 
           <div className="p-8 lg:p-12 flex flex-col lg:flex-row gap-12">
@@ -128,16 +133,43 @@ function BookingPage() {
                   </div>
 
                   <div>
-                    <h2 className="text-3xl font-bold text-gray-800 mb-2">{concert.name}</h2>
-                    <p className="text-gray-500 leading-relaxed mb-4">{concert.description}</p>
+                    <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                      {concert.name}
+                    </h2>
+                    <div className="mb-4">
+                      <p
+                        className={`text-gray-500 leading-relaxed whitespace-pre-line ${
+                          !descriptionExpanded
+                            ? "line-clamp-3 overflow-hidden"
+                            : ""
+                        }`}
+                      >
+                        {concert.description}
+                      </p>
+                      {concert.description &&
+                        concert.description.length > 120 && (
+                          <button
+                            onClick={() =>
+                              setDescriptionExpanded(!descriptionExpanded)
+                            }
+                            className="text-blue-500 hover:text-blue-700 text-sm font-medium mt-1 transition-colors duration-200 cursor-pointer"
+                          >
+                            {descriptionExpanded ? "Show less" : "...Read more"}
+                          </button>
+                        )}
+                    </div>
 
                     <div className="space-y-3 bg-gray-50 p-4 rounded-xl border border-gray-100">
                       <div className="flex items-center text-gray-700">
-                        <span className="w-8 h-8 flex items-center justify-center bg-blue-100 rounded-lg text-blue-600 mr-3 text-sm">📅</span>
+                        <span className="w-8 h-8 flex items-center justify-center bg-blue-100 rounded-lg text-blue-600 mr-3 text-sm">
+                          📅
+                        </span>
                         <span className="font-medium">{concert.date}</span>
                       </div>
                       <div className="flex items-center text-gray-700">
-                        <span className="w-8 h-8 flex items-center justify-center bg-blue-100 rounded-lg text-blue-600 mr-3 text-sm">📍</span>
+                        <span className="w-8 h-8 flex items-center justify-center bg-blue-100 rounded-lg text-blue-600 mr-3 text-sm">
+                          📍
+                        </span>
                         <span className="font-medium">{concert.location}</span>
                       </div>
                     </div>
@@ -164,14 +196,19 @@ function BookingPage() {
                 {/* Zone Selection */}
                 <div>
                   <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                    <span className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg mr-3 text-sm text-gray-500">1</span>
+                    <span className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg mr-3 text-sm text-gray-500">
+                      1
+                    </span>
                     Select Your Zone
                   </h3>
 
                   {loading ? (
                     <div className="grid grid-cols-2 gap-4">
-                      {[1, 2, 3, 4].map(i => (
-                        <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse"></div>
+                      {[1, 2, 3, 4].map((i) => (
+                        <div
+                          key={i}
+                          className="h-20 bg-gray-100 rounded-xl animate-pulse"
+                        ></div>
                       ))}
                     </div>
                   ) : (
@@ -182,14 +219,18 @@ function BookingPage() {
                           disabled={zone.capacity === 0}
                           onClick={() => setSelectedZone(zone)}
                           className={`relative p-5 rounded-xl border-2 text-left transition-all duration-200 group
-                            ${selectedZone?.id === zone.id
-                              ? "border-blue-500 bg-blue-50/50 ring-4 ring-blue-50"
-                              : zone.capacity === 0
-                                ? "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed"
-                                : "border-gray-100 hover:border-blue-200 hover:bg-gray-50"}`}
+                            ${
+                              selectedZone?.id === zone.id
+                                ? "border-blue-500 bg-blue-50/50 ring-4 ring-blue-50"
+                                : zone.capacity === 0
+                                  ? "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed"
+                                  : "border-gray-100 hover:border-blue-200 hover:bg-gray-50"
+                            }`}
                         >
                           <div className="flex justify-between items-start mb-2">
-                            <span className={`font-bold text-lg ${selectedZone?.id === zone.id ? "text-blue-700" : "text-gray-800"}`}>
+                            <span
+                              className={`font-bold text-lg ${selectedZone?.id === zone.id ? "text-blue-700" : "text-gray-800"}`}
+                            >
                               {zone.name}
                             </span>
                             {selectedZone?.id === zone.id && (
@@ -200,7 +241,9 @@ function BookingPage() {
                             ฿{zone.price.toLocaleString()}
                           </div>
                           <div className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            {zone.capacity > 0 ? `${zone.capacity} seats available` : "Sold Out"}
+                            {zone.capacity > 0
+                              ? `${zone.capacity} seats available`
+                              : "Sold Out"}
                           </div>
                         </button>
                       ))}
@@ -212,33 +255,47 @@ function BookingPage() {
                 {selectedZone && (
                   <div className="space-y-6 pt-4 border-t border-gray-100">
                     <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-                      <span className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg mr-3 text-sm text-gray-500">2</span>
+                      <span className="w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg mr-3 text-sm text-gray-500">
+                        2
+                      </span>
                       Ticket Quantity
                     </h3>
 
                     <div className="flex items-center justify-between bg-gray-50 p-6 rounded-2xl">
                       <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">Quantity</span>
+                        <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                          Quantity
+                        </span>
                         <div className="flex items-center gap-6">
                           <button
-                            onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                            onClick={() =>
+                              setQuantity(Math.max(1, quantity - 1))
+                            }
                             className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-xl font-bold text-gray-600 hover:bg-gray-100 transition shadow-sm"
                           >
                             -
                           </button>
-                          <span className="text-3xl font-black text-gray-900 w-8 text-center">{quantity}</span>
+                          <span className="text-3xl font-black text-gray-900 w-8 text-center">
+                            {quantity}
+                          </span>
                           <button
-                            onClick={() => setQuantity(Math.min(6, quantity + 1))}
+                            onClick={() =>
+                              setQuantity(Math.min(6, quantity + 1))
+                            }
                             className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center text-xl font-bold text-gray-600 hover:bg-gray-100 transition shadow-sm"
                           >
                             +
                           </button>
                         </div>
-                        <span className="text-xs text-gray-500 mt-2">Maximum 6 tickets per person</span>
+                        <span className="text-xs text-gray-500 mt-2">
+                          Maximum 6 tickets per person
+                        </span>
                       </div>
 
                       <div className="text-right">
-                        <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1 block">Total Amount</span>
+                        <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1 block">
+                          Total Amount
+                        </span>
                         <div className="text-4xl font-black text-blue-600 tracking-tight">
                           ฿{totalPrice.toLocaleString()}
                         </div>
@@ -247,7 +304,8 @@ function BookingPage() {
 
                     {selectedZone.capacity < quantity && (
                       <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium border border-red-100 flex items-center">
-                        <span className="mr-2 text-lg">!</span> Not enough seats available in this zone.
+                        <span className="mr-2 text-lg">!</span> Not enough seats
+                        available in this zone.
                       </div>
                     )}
 
@@ -255,19 +313,39 @@ function BookingPage() {
                       disabled={submitting || selectedZone.capacity < quantity}
                       onClick={handleBooking}
                       className={`w-full py-5 rounded-2xl text-white font-black text-xl shadow-xl transition-all duration-300 transform
-                        ${!submitting && selectedZone.capacity >= quantity
-                          ? "bg-gradient-to-r from-blue-600 to-indigo-700 hover:shadow-blue-200 hover:-translate-y-1 active:scale-95"
-                          : "bg-gray-400 cursor-not-allowed opacity-50"}`}
+                        ${
+                          !submitting && selectedZone.capacity >= quantity
+                            ? "bg-gradient-to-r from-blue-600 to-indigo-700 hover:shadow-blue-200 hover:-translate-y-1 active:scale-95"
+                            : "bg-gray-400 cursor-not-allowed opacity-50"
+                        }`}
                     >
                       {submitting ? (
                         <span className="flex items-center justify-center">
-                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          <svg
+                            className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
                           </svg>
                           Processing...
                         </span>
-                      ) : "Book Ticket Now"}
+                      ) : (
+                        "Book Ticket Now"
+                      )}
                     </button>
                   </div>
                 )}

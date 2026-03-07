@@ -17,9 +17,17 @@ app = Flask(__name__)
 CORS(app)
 
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
+#app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
+    "SQLALCHEMY_DATABASE_URI",
+    "mysql+pymysql://user:password@mysql:3306/concert_db"
+)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
+#app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
+app.config['JWT_SECRET_KEY'] = os.getenv(
+    "JWT_SECRET_KEY",
+    "supersecretkey"
+)
 
 
 db.init_app(app)
@@ -326,6 +334,20 @@ def update_concert(concert_id):
             return jsonify({"error": "Invalid datetime format"}), 400
     if data.get("image_url") is not None:
         event.image_url = data["image_url"]
+
+    # Update zones if provided
+    if "zones" in data:
+        # Delete existing zones
+        Zone.query.filter_by(event_id=event.id).delete()
+        # Add new zones
+        for z in data["zones"]:
+            zone = Zone(
+                event_id=event.id,
+                name=z.get("name", "General"),
+                capacity=z.get("capacity", 100),
+                price=z.get("price", 0)
+            )
+            db.session.add(zone)
 
     db.session.commit()
     return jsonify({"message": "Concert updated successfully"}), 200
@@ -820,4 +842,4 @@ def delete_user(identifier):
     print(f"User '{user.username}' has been soft-deleted.")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)

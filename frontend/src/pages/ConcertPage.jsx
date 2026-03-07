@@ -10,6 +10,14 @@ function ConcertPage() {
   const [concerts, setConcerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [expandedDescriptions, setExpandedDescriptions] = useState({});
+
+  const toggleDescription = (concertId) => {
+    setExpandedDescriptions((prev) => ({
+      ...prev,
+      [concertId]: !prev[concertId],
+    }));
+  };
 
   useEffect(() => {
     const fetchConcerts = async () => {
@@ -93,9 +101,30 @@ function ConcertPage() {
                       {concert.name}
                     </h2>
                     {concert.description && (
-                      <p className="text-gray-500 text-sm mb-2">
-                        {concert.description}
-                      </p>
+                      <div className="mb-2">
+                        <p
+                          className={`text-gray-500 text-sm whitespace-pre-line ${
+                            !expandedDescriptions[concert.id]
+                              ? "line-clamp-2 overflow-hidden"
+                              : ""
+                          }`}
+                        >
+                          {concert.description}
+                        </p>
+                        {concert.description.length > 100 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleDescription(concert.id);
+                            }}
+                            className="text-blue-500 hover:text-blue-700 text-xs font-medium mt-1 transition-colors duration-200 cursor-pointer"
+                          >
+                            {expandedDescriptions[concert.id]
+                              ? "Show less"
+                              : "...Read more"}
+                          </button>
+                        )}
+                      </div>
                     )}
                     <p className="text-gray-600 text-md">
                       📅 {concert.date} &nbsp;|&nbsp; 📍 {concert.location}
