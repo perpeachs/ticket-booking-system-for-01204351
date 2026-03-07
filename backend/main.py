@@ -16,10 +16,18 @@ from transaction_service import log_transaction
 app = Flask(__name__)
 CORS(app)
 
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
+    "SQLALCHEMY_DATABASE_URI",
+    "mysql+pymysql://user:password@mysql:3306/concert_db"
+)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
+app.config['JWT_SECRET_KEY'] = os.getenv(
+    "JWT_SECRET_KEY",
+    "supersecretkey"
+)
+#app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('SQLALCHEMY_DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
+#app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
 
 
 db.init_app(app)
@@ -820,4 +828,4 @@ def delete_user(identifier):
     print(f"User '{user.username}' has been soft-deleted.")
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5000, debug=True)
