@@ -49,18 +49,21 @@ A full-stack concert ticket booking platform built with **React**, **Flask**, **
 
 ## 🛠️ Tech Stack
 
-| Layer                | Technology                      | Purpose                                             |
-| -------------------- | ------------------------------- | --------------------------------------------------- |
-| **Frontend**         | React 19, Vite 7, TailwindCSS 4 | SPA with modern UI                                  |
-| **Routing**          | React Router DOM 7              | Client-side routing                                 |
-| **Backend**          | Flask 3.1, Python 3.11          | REST API server                                     |
-| **Auth**             | Flask-JWT-Extended              | JWT token authentication                            |
-| **ORM**              | Flask-SQLAlchemy, Alembic       | Database ORM & migrations                           |
-| **Security**         | Flask-Bcrypt                    | Password hashing                                    |
-| **Scheduler**        | APScheduler                     | Background job scheduling                           |
-| **SQL Database**     | MySQL 8                         | Relational data (Users, Events, Bookings, Payments) |
-| **NoSQL Database**   | MongoDB 7                       | Document data (Transaction Logs, User Statistics)   |
-| **Containerization** | Docker, Docker Compose          | Multi-container deployment                          |
+| Layer                | Technology              | Version | Purpose                                                     |
+| -------------------- | ----------------------- | ------- | ----------------------------------------------------------- |
+| **Frontend**         | React                   | 19      | Component-based SPA framework                               |
+| **Build Tool**       | Vite                    | 7       | Fast development server and bundler                         |
+| **Styling**          | TailwindCSS             | 4       | Utility-first CSS framework                                 |
+| **Routing**          | React Router DOM        | 7       | Client-side page routing and navigation                     |
+| **Backend**          | Flask (Python)          | 3.1     | Lightweight REST API server                                 |
+| **Authentication**   | Flask-JWT-Extended      | 4.7     | JWT token-based authentication                              |
+| **ORM**              | Flask-SQLAlchemy        | 3.1     | Object-Relational Mapping for MySQL                         |
+| **Migration**        | Flask-Migrate (Alembic) | 4.1     | Database schema migration management                        |
+| **Security**         | Flask-Bcrypt            | 1.0     | Password hashing with bcrypt                                |
+| **Scheduler**        | APScheduler             | 3.11    | Background job scheduling (auto-expiration)                 |
+| **SQL Database**     | MySQL                   | 8       | Relational data storage (Users, Events, Bookings, Payments) |
+| **NoSQL Database**   | MongoDB                 | 7       | Document data storage (Transaction Logs, User Statistics)   |
+| **Containerization** | Docker + Docker Compose | —       | Multi-container orchestration and deployment                |
 
 ---
 
@@ -68,12 +71,12 @@ A full-stack concert ticket booking platform built with **React**, **Flask**, **
 
 ```
 ┌─────────────────┐       ┌─────────────────────────────────────────┐
-│                 │       │            Backend (Flask)               │
+│                 │       │            Backend (Flask)              │
 │    Frontend     │       │                                         │
 │  (React + Vite) │◄────► │  REST API + JWT Auth + Business Logic   │
 │                 │       │  + Background Scheduler (APScheduler)   │
 │  Port: 5173     │       │                                         │
-│                 │       │  Port: 5000                              │
+│                 │       │  Port: 5000                             │
 └─────────────────┘       └──────────┬──────────────┬───────────────┘
                                      │              │
                           ┌──────────▼──────┐  ┌────▼──────────────┐
@@ -91,11 +94,15 @@ A full-stack concert ticket booking platform built with **React**, **Flask**, **
 
 ### Why Polyglot Persistence?
 
-| Data Type                                | Database    | Reason                                                                                                                               |
-| ---------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Users, Events, Zones, Bookings, Payments | **MySQL**   | Strong relationships, requires ACID transactions (e.g., atomic booking: lock seat → deduct tokens → create booking → create payment) |
-| Transaction Logs                         | **MongoDB** | Append-only, flexible schema, no joins needed, high write throughput                                                                 |
-| User Statistics                          | **MongoDB** | Aggregated counters, updated via `$inc`, no relational dependencies                                                                  |
+| Data Type         | Database    | Table / Collection | Data Characteristics                            | Reason                                                                                                       |
+| ----------------- | ----------- | ------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| Users             | **MySQL**   | `users`            | Relational (1:N with Bookings)                  | Requires Foreign Keys, Unique Constraints, and ACID to guarantee correct token balance                       |
+| Events (Concerts) | **MySQL**   | `events`           | Relational (1:N with Zones)                     | Has a Status Flow (draft → available → completed), needs JOIN with Zones                                     |
+| Zones             | **MySQL**   | `zones`            | Relational (N:1 with Events, 1:N with Bookings) | Requires Row-level Locking (`SELECT ... FOR UPDATE`) to prevent Race Conditions during booking               |
+| Bookings          | **MySQL**   | `bookings`         | Relational (N:1 with Users, Zones, Payments)    | Requires Atomic Transactions across Zone Capacity, Payment, and User Tokens                                  |
+| Payments          | **MySQL**   | `payments`         | Relational (1:1 with Bookings)                  | Must guarantee ACID — deduct tokens, create booking, and create payment atomically                           |
+| Transaction Logs  | **MongoDB** | `transactions`     | Append-only, Flexible Schema                    | Immutable log, no JOINs needed, variable schema per action type (topup/ticket/payment), write-heavy workload |
+| User Statistics   | **MongoDB** | `user_stats`       | Aggregated Counters                             | Updated via `$inc` operator, no relational dependencies, fast read/write performance                         |
 
 ---
 
@@ -158,7 +165,7 @@ DatabaseProject/
 │ username     │     │ title        │     │ event_id (FK)│
 │ email        │     │ description  │     │ name         │
 │ password_hash│     │ location     │     │ capacity     │
-│ role         │     │ event_datetime│    │ price        │
+│ role         │     │event_datetime│     │ price        │
 │ tokens       │     │ status       │     │ is_available │
 │ created_at   │     │ image_url    │     └──────┬───────┘
 │ updated_at   │     │ created_at   │            │
@@ -170,11 +177,11 @@ DatabaseProject/
        │         ├──────────────┤     ├──────────────────┤
        │         │ id (PK)      │◄────│ payment_id (FK)  │
        │         │ total_price  │     │ id (PK)          │
-       │         │ status       │     │ user_id (FK) ────┘
-       │         │ paid_at      │     │ zone_id (FK)
-       │         └──────────────┘     │ quantity
-       │                              │ status
-       └──────────────────────────────│ created_at
+       │         │ status       │     │ user_id (FK)     │
+       │         │ paid_at      │     │ zone_id (FK)     │
+       │         └──────────────┘     │ quantity         │
+       │                              │ status           │
+       └──────────────────────────────│ created_at       │
                                       └──────────────────┘
 ```
 
