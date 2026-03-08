@@ -39,9 +39,9 @@ function AddConcertPage() {
     const validZones = zones
       .filter((z) => z.name.trim() !== "")
       .map((z) => ({
-        name: z.name,
-        capacity: parseInt(z.capacity) || 100,
-        price: parseFloat(z.price) || 0,
+        name: z.name.trim(),
+        capacity: z.capacity !== "" ? parseInt(z.capacity) : 0,
+        price: z.price !== "" ? parseFloat(z.price) : 0,
       }));
 
     try {

@@ -337,15 +337,23 @@ def update_concert(concert_id):
 
     # Update zones if provided
     if "zones" in data:
+        zones_data = data["zones"]
+        # Validate zones before modifying
+        for z in zones_data:
+            if not z.get("name") or not str(z["name"]).strip():
+                return jsonify({"error": "Each zone must have a name"}), 400
+
         # Delete existing zones
         Zone.query.filter_by(event_id=event.id).delete()
-        # Add new zones
-        for z in data["zones"]:
+        # Add new zones with actual submitted values
+        for z in zones_data:
+            zone_capacity = z.get("capacity")
+            zone_price = z.get("price")
             zone = Zone(
                 event_id=event.id,
-                name=z.get("name", "General"),
-                capacity=z.get("capacity", 100),
-                price=z.get("price", 0)
+                name=str(z["name"]).strip(),
+                capacity=int(zone_capacity) if zone_capacity is not None else 0,
+                price=float(zone_price) if zone_price is not None else 0.0
             )
             db.session.add(zone)
 
