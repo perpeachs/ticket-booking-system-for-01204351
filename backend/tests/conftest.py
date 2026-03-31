@@ -23,7 +23,9 @@ def test_app():
          patch("mongo.user_stats_collection", new=mongomock.MongoClient().db.user_stats):
         
         with patch("main.transactions_collection", new=mongomock.MongoClient().db.transactions), \
-             patch("main.user_stats_collection", new=mongomock.MongoClient().db.user_stats):
+             patch("main.user_stats_collection", new=mongomock.MongoClient().db.user_stats), \
+             patch("transaction_service.transactions_collection", new=mongomock.MongoClient().db.transactions), \
+             patch("transaction_service.user_stats_collection", new=mongomock.MongoClient().db.user_stats):
             yield app
 
 @pytest.fixture(scope="function")
