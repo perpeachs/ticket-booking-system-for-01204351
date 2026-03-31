@@ -1,3 +1,13 @@
 __pycache__
+*.pyc
 .env
 .git
+.github
+node_modules
+frontend/node_modules
+backend/venv
+backend/__pycache__
+*.md
+.gitignore
+docker-compose.yml
+Database_Design.pdf

@@ -2,7 +2,7 @@ import { useState } from "react";
 import bgImage from "../assets/thumb-1920-1172157.jpeg";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-const API_BASE = "http://127.0.0.1:5000";
+const API_BASE = import.meta.env.VITE_API_BASE || "";
 
 function LoginPage({ loginUrl }) {
   const [username, setUsername] = useState("");

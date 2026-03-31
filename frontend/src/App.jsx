@@ -20,7 +20,6 @@ import AddConcertPage from "./pages/AddConcertPage";
 import DraftConcertPage from "./pages/DraftConcertPage";
 import { useAuth } from "./context/AuthContext";
 
-const TODOLIST_LOGIN_URL = "http://localhost:5000/api/auth/login";
 
 // Redirect to /login if user is not authenticated
 function ProtectedRoute({ children }) {
@@ -68,7 +67,7 @@ function App() {
           {/* Public routes */}
           <Route
             path="/login"
-            element={<LoginPage loginUrl={TODOLIST_LOGIN_URL} />}
+            element={<LoginPage/>}
           />
           <Route path="/register" element={<RegisterPage />} />
 

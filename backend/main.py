@@ -1,7 +1,7 @@
 import os
 import click
 from datetime import datetime
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity
 from flask_migrate import Migrate
@@ -13,7 +13,7 @@ from expiration_manager import start_expiration_scheduler
 from mongo import transactions_collection, user_stats_collection
 from bson import ObjectId
 from transaction_service import log_transaction
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='')
 CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv(
@@ -849,5 +849,18 @@ def delete_user(identifier):
     db.session.commit()
     print(f"User '{user.username}' has been soft-deleted.")
 
+# ============ Frontend Catch-all Route ============
+# This MUST be the last route — serves React SPA for all non-API paths
+
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def serve_frontend(path):
+    """Serve React frontend for all non-API routes"""
+    if path and os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    return send_from_directory(app.static_folder, 'index.html')
+
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port, debug=False)
