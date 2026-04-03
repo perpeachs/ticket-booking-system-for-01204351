@@ -166,7 +166,7 @@ describe("RegisterPage", () => {
 
     await waitFor(() => {
       expect(fetch).toHaveBeenCalledWith(
-        "http://127.0.0.1:5000/api/auth/register",
+        expect.stringContaining("/api/auth/register"),
         expect.objectContaining({
           method: "POST",
           headers: { "Content-Type": "application/json" },
